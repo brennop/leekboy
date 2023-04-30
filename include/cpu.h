@@ -4,6 +4,14 @@
 #include "ram.h"
 #include <stdint.h>
 
+#define IF 0xFF0F
+#define IE 0xFFFF
+
+#define I_VBLANK 0x01
+#define I_LCDSTAT 0x02
+#define I_TIMER 0x04
+#define I_SERIAL 0x08
+
 typedef struct {
   RAM *ram;
 

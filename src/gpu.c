@@ -50,14 +50,14 @@ void gpu_set_status(GPU *gpu) {
 
     // mode changed, request interrupt
     if (req_int && (mode != current_mode)) {
-      cpu_interrupt(gpu->cpu, 1);
+      cpu_interrupt(gpu->cpu, I_LCDSTAT);
     }
 
     // check coincidence
     if (ram_get(gpu->ram, LY) == ram_get(gpu->ram, LYC)) {
       status |= 0x04;
       if (status & 0x40) {
-        cpu_interrupt(gpu->cpu, 1);
+        cpu_interrupt(gpu->cpu, I_LCDSTAT);
       }
     } else {
       status &= ~0x04;
@@ -86,7 +86,7 @@ void gpu_step(GPU *gpu, int cycles) {
 
     if (current_line == 144) {
       // request vblank interrupt
-      cpu_interrupt(gpu->cpu, 0);
+      cpu_interrupt(gpu->cpu, I_VBLANK);
     } else if (current_line > 153) {
       gpu->ram->data[LY] = 0;
     } else if (current_line < 144) {

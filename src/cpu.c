@@ -26,9 +26,9 @@ uint8_t cpu_ram_get(CPU *cpu, uint16_t address) {
 }
 
 void cpu_interrupt(CPU *cpu, uint8_t interrupt) {
-  /* NOT IMPLEMENTED */
-  printf("Interrupt: %d\n", interrupt);
-  exit(1);
+  uint8_t interrupt_flag = ram_get(cpu->ram, IF);
+  interrupt_flag |= interrupt;
+  ram_set(cpu->ram, IF, interrupt_flag);
 }
 
 void cpu_set_flags(CPU *cpu, uint8_t z, uint8_t n, uint8_t h, uint8_t c) {
