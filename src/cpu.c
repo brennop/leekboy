@@ -88,6 +88,12 @@ static inline void set_r16(CPU *cpu, uint8_t opcode, uint16_t value) {
   }
 }
 
+static inline void compare(CPU *cpu, uint8_t value) {
+  uint8_t result = cpu->a - value;
+
+  cpu_set_flags(cpu, result == 0, 1, (cpu->a & 0x0F) < (value & 0x0F), cpu->a < value);
+}
+
 static inline void xor_a_r8(CPU *cpu, uint8_t value) {
   cpu->a ^= value;
 
@@ -135,6 +141,10 @@ int cpu_step(CPU *cpu) {
     case 0xA8 ... 0xAF: xor_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xC3: cpu->pc = nnn; break;
     case 0xCD: cpu_push_stack(cpu, cpu->pc); cpu->pc = nnn; break;
+    case 0xE0: memory_set(cpu->memory, 0xFF00 + nn, cpu->a); break;
+    case 0xF0: cpu->a = memory_get(cpu->memory, 0xFF00 + nn); break;
+    case 0xFE: compare(cpu, nn); break;
+    case 0xF3: case 0xFB: cpu->ime = opcode == 0xFB; break;
     default: printf("Unknown opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
 
