@@ -45,6 +45,7 @@ local function run_test(test, cpu)
 
   -- set registers
   cpu.a = tonumber(test.initial.cpu.a)
+  cpu.f = tonumber(test.initial.cpu.f)
   cpu.b = tonumber(test.initial.cpu.b)
   cpu.c = tonumber(test.initial.cpu.c)
   cpu.d = tonumber(test.initial.cpu.d)
@@ -74,6 +75,7 @@ local function run_test(test, cpu)
 
   -- check registers
   assert_register("a")
+  assert_register("f")
   assert_register("b")
   assert_register("c")
   assert_register("d")

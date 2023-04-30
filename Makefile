@@ -61,4 +61,4 @@ shared: $(OBJ_FILES)
 
 # Test target using luajit
 test: shared
-	luajit test/test.lua $(TEST_FILE)
+	luajit test/test.lua test/tests/$(OPCODE).json

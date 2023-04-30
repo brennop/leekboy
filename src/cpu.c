@@ -6,6 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define ZEROF (cpu->f & 0x80) == 0x80
+#define SUBF (cpu->f & 0x40) == 0x40
+#define HALFF (cpu->f & 0x20) == 0x20
+#define CARRYF (cpu->f & 0x10) == 0x10
+
 #define NN memory_get(cpu->memory, cpu->pc - 1)
 #define NNN memory_get(cpu->memory, cpu->pc - 1) << 8 | memory_get(cpu->memory, cpu->pc - 2)
 
@@ -123,7 +128,9 @@ int cpu_step(CPU *cpu) {
   switch(opcode) {
     case 0x00: /* NOP */ break;
     CASE4_16(0x01) set_r16(cpu, opcode, nnn); break;
+    CASE8_8(0x05) set_r8(cpu, (opcode - 0x05) / 8, get_r8(cpu, (opcode - 0x05) / 8) - 1); break;
     CASE8_8(0x06) set_r8(cpu, (opcode - 0x06) / 8, nn); break;
+    case 0x20: if(!(ZEROF)) cpu->pc += (int8_t) nn; break;
     case 0x32: memory_set(cpu->memory, cpu->hl--, cpu->a); break;
     case 0xA8 ... 0xAF: xor_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xC3: cpu->pc = nnn; break;

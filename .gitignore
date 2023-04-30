@@ -1,7 +1,13 @@
-leekboy
+# clang
 compile_commands.json
 .cache
+
+# build artifacts
 bin
 obj
 lib
+
 *.gb
+
+# tests
+test/tests
