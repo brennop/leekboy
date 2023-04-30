@@ -1,6 +1,8 @@
 local json = require "test.json"
 local ffi = require "ffi"
 
+local bor, band, bxor, lshift, rshift = bit.bor, bit.band, bit.bxor, bit.lshift, bit.rshift
+
 local lib = ffi.load("lib/libleekboy.so")
 
 local function load_header(name)
@@ -73,9 +75,25 @@ local function run_test(test, cpu)
     assert(actual == expected, message:format(test.name, name, expected, actual))
   end
 
+  local function assert_flag(offset, name)
+    local flags = tonumber(test.final.cpu.f)
+    local expected = band(flags, lshift(1, offset))
+    local actual = band(cpu.f, lshift(1, offset))
+
+    local message = [[
+
+    TEST FAILED
+      test: %s
+      flag: %s
+      expected: 0x%04x
+      actual: 0x%04x
+    ]]
+
+    assert(actual == expected, message:format(test.name, name, expected, actual))
+  end
+
   -- check registers
   assert_register("a")
-  assert_register("f")
   assert_register("b")
   assert_register("c")
   assert_register("d")
@@ -84,6 +102,12 @@ local function run_test(test, cpu)
   assert_register("l")
   assert_register("sp")
   assert_register("pc")
+
+  -- check flags
+  assert_flag(7, "zero")
+  assert_flag(6, "sub")
+  assert_flag(5, "half")
+  assert_flag(4, "carry")
 
   -- check memory
   for _, v in ipairs(test.final.ram) do

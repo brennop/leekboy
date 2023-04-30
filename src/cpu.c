@@ -100,6 +100,14 @@ static inline void xor_a_r8(CPU *cpu, uint8_t value) {
   cpu_set_flags(cpu, cpu->a == 0, 0, 0, 0);
 }
 
+static inline void dec_r8(CPU *cpu, uint8_t opcode) {
+  uint8_t value = get_r8(cpu, opcode);
+  value--;
+
+  cpu_set_flags(cpu, value == 0, 1, (value & 0x0F) == 0x0F, CARRYF);
+  set_r8(cpu, opcode, value);
+}
+
 void cpu_init(CPU *cpu, uint8_t *rom) {
   // allocate memory for the cpu
   cpu->memory = malloc(0x10000);
@@ -112,6 +120,16 @@ void cpu_init(CPU *cpu, uint8_t *rom) {
 
   // set the stack pointer to the top of the stack
   cpu->sp = 0xFFFE;
+
+  // set the initial register values
+  cpu->a = 0x01;
+  cpu->f = 0xB0;
+  cpu->b = 0x00;
+  cpu->c = 0x13;
+  cpu->d = 0x00;
+  cpu->e = 0xD8;
+  cpu->h = 0x01;
+  cpu->l = 0x4D;
 }
 
 int cpu_step(CPU *cpu) {
@@ -125,7 +143,11 @@ int cpu_step(CPU *cpu) {
   cpu->pc += instruction.bytes;
 
   // debug current instruction
-  /* printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic); */
+  printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic);
+  // debug registers
+  printf("A: 0x%02X, F: 0x%02X, B: 0x%02X, C: 0x%02X, D: 0x%02X, E: 0x%02X, H: 0x%02X, L: 0x%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l);
+  // debug flags
+  printf("Z: %d, N: %d, H: %d, C: %d\n\n", ZEROF, SUBF, HALFF, CARRYF);
 
   // save operands before
   uint8_t nn = NN;
@@ -134,7 +156,7 @@ int cpu_step(CPU *cpu) {
   switch(opcode) {
     case 0x00: /* NOP */ break;
     CASE4_16(0x01) set_r16(cpu, opcode, nnn); break;
-    CASE8_8(0x05) set_r8(cpu, (opcode - 0x05) / 8, get_r8(cpu, (opcode - 0x05) / 8) - 1); break;
+    CASE8_8(0x05) dec_r8(cpu, (opcode - 0x05) / 8); break;
     CASE8_8(0x06) set_r8(cpu, (opcode - 0x06) / 8, nn); break;
     case 0x20: if(!(ZEROF)) cpu->pc += (int8_t) nn; break;
     case 0x32: memory_set(cpu->memory, cpu->hl--, cpu->a); break;

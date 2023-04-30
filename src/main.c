@@ -22,6 +22,8 @@ int main() {
 
   while (1) {
     cpu_step(&cpu);
+    // get console input
+    getchar();
   }
 
   return 0;
