@@ -1,11 +1,11 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
-#include "memory.h"
+#include "ram.h"
 #include <stdint.h>
 
 typedef struct {
-  Memory *memory;
+  RAM *ram;
 
   union {
     struct {
@@ -47,6 +47,7 @@ typedef struct {
 
 void cpu_init(CPU *cpu, uint8_t *rom);
 int cpu_step(CPU *cpu);
+void cpu_interrupt(CPU *cpu, uint8_t interrupt);
 
 extern void cpu_memory_set(CPU *cpu, uint16_t address, uint8_t value);
 extern uint8_t cpu_memory_get(CPU *cpu, uint16_t address);
