@@ -1,10 +1,11 @@
 #ifndef __CPU_H__
 #define __CPU_H__
 
+#include "memory.h"
 #include <stdint.h>
 
 typedef struct {
-  uint8_t *memory;
+  Memory *memory;
 
   union {
     struct {

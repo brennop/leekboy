@@ -1,12 +1,13 @@
 #include "cpu.h"
 #include "instructions.h"
+#include "memory.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define NN cpu->memory[cpu->pc - 1]
-#define NNN cpu->memory[cpu->pc - 1] << 8 | cpu->memory[cpu->pc - 2]
+#define NN memory_get(cpu->memory, cpu->pc - 1)
+#define NNN memory_get(cpu->memory, cpu->pc - 1) << 8 | memory_get(cpu->memory, cpu->pc - 2)
 
 #define CASE4_16(x) case x: case x + 16: case x + 32: case x + 48:
 #define CASE8_8(x) case x: case x + 8: case x + 16: case x + 24: case x + 32: case x + 40: case x + 48: case x + 56:
@@ -24,8 +25,8 @@ static inline void cpu_push_stack(CPU *cpu, uint16_t value) {
   cpu->sp -= 2;
 
   // push the value onto the stack
-  cpu->memory[cpu->sp] = value & 0xFF;
-  cpu->memory[cpu->sp + 1] = (value >> 8) & 0xFF;
+  memory_set(cpu->memory, cpu->sp, value & 0xFF);
+  memory_set(cpu->memory, cpu->sp + 1, (value >> 8) & 0xFF);
 }
 
 static inline uint8_t get_r8(CPU *cpu, uint8_t opcode) {
@@ -36,7 +37,7 @@ static inline uint8_t get_r8(CPU *cpu, uint8_t opcode) {
     case 0x03: return cpu->e;
     case 0x04: return cpu->h;
     case 0x05: return cpu->l;
-    case 0x06: return cpu->memory[cpu->hl];
+    case 0x06: return memory_get(cpu->memory, cpu->hl);
     case 0x07: return cpu->a;
     default: return 0;
   }
@@ -50,7 +51,7 @@ static inline void set_r8(CPU *cpu, uint8_t opcode, uint8_t value) {
     case 0x03: cpu->e = value; break;
     case 0x04: cpu->h = value; break;
     case 0x05: cpu->l = value; break;
-    case 0x06: cpu->memory[cpu->hl] = value; break;
+    case 0x06: memory_set(cpu->memory, cpu->hl, value); break;
     case 0x07: cpu->a = value; break;
   }
 }
@@ -96,7 +97,7 @@ void cpu_init(CPU *cpu, uint8_t *rom) {
 
 int cpu_step(CPU *cpu) {
   // fetch the next instruction
-  uint8_t opcode = cpu->memory[cpu->pc];
+  uint8_t opcode = memory_get(cpu->memory, cpu->pc);
 
   // decode the instruction
   Instruction instruction = instructions[opcode];
@@ -111,6 +112,7 @@ int cpu_step(CPU *cpu) {
     case 0x00: /* NOP */ break;
     CASE4_16(0x01) set_r16(cpu, opcode, NNN); break;
     CASE8_8(0x06) set_r8(cpu, opcode, NN); break;
+    case 0x32: memory_set(cpu->memory, cpu->hl--, cpu->a); break;
     case 0xA8 ... 0xAF: xor_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xC3: cpu->pc = NNN; break;
     case 0xCD: cpu_push_stack(cpu, cpu->pc); cpu->pc = NNN; break;
