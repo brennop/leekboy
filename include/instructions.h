@@ -8,7 +8,7 @@ typedef struct {
   char *mnemonic;
   uint8_t bytes;
   uint8_t cycles;
-  int (*execute)(CPU *cpu);
+  void (*execute)(CPU *cpu);
 } Instruction;
 
 extern Instruction instructions[256];

@@ -1,4 +1,6 @@
 leekboy
 compile_commands.json
 .cache
+bin
+obj
 *.gb

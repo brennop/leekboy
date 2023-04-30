@@ -1,9 +1,9 @@
 #include "cpu.h"
 #include "instructions.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 
 void cpu_init(CPU *cpu, uint8_t *rom) {
   // allocate memory for the cpu
@@ -25,6 +25,11 @@ int cpu_step(CPU *cpu) {
 
   // decode the instruction
   Instruction instruction = instructions[i];
+
+  if (instruction.execute == NULL) {
+    printf("Unimplemented instruction: 0x%02X, %s\n", i, instruction.mnemonic);
+    exit(1);
+  }
 
   // increment the program counter
   cpu->pc += instruction.bytes;
