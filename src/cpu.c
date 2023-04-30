@@ -116,14 +116,18 @@ int cpu_step(CPU *cpu) {
   // debug current instruction
   /* printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic); */
 
+  // save operands before
+  uint8_t nn = NN;
+  uint16_t nnn = NNN;
+
   switch(opcode) {
     case 0x00: /* NOP */ break;
-    CASE4_16(0x01) set_r16(cpu, opcode, NNN); break;
-    CASE8_8(0x06) set_r8(cpu, opcode, NN); break;
+    CASE4_16(0x01) set_r16(cpu, opcode, nnn); break;
+    CASE8_8(0x06) set_r8(cpu, (opcode - 0x06) / 8, nn); break;
     case 0x32: memory_set(cpu->memory, cpu->hl--, cpu->a); break;
     case 0xA8 ... 0xAF: xor_a_r8(cpu, get_r8(cpu, opcode)); break;
-    case 0xC3: cpu->pc = NNN; break;
-    case 0xCD: cpu_push_stack(cpu, cpu->pc); cpu->pc = NNN; break;
+    case 0xC3: cpu->pc = nnn; break;
+    case 0xCD: cpu_push_stack(cpu, cpu->pc); cpu->pc = nnn; break;
     default: printf("Unknown opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
 
