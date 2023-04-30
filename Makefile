@@ -2,7 +2,7 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -Wall -Werror -std=c99 -Iinclude `sdl2-config --cflags`
+CFLAGS = -Wall -Werror -std=c99 -Iinclude -fPIC `sdl2-config --cflags`
 
 # Linker flags
 LDFLAGS = `sdl2-config --libs`
@@ -11,16 +11,18 @@ LDFLAGS = `sdl2-config --libs`
 SRC_DIR = src
 OBJ_DIR = obj
 BIN_DIR = bin
+LIB_DIR = lib
 
 # Files
 SRC_FILES := $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
+SHARED_LIB = $(LIB_DIR)/libleekboy.so
 
 # Targets
 TARGET = $(BIN_DIR)/leekboy
 
 # Phony targets
-.PHONY: all clean
+.PHONY: all clean run shared
 
 # Default target
 all: $(TARGET)
@@ -37,8 +39,26 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 
 # Clean target
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR) $(BIN_DIR) $(LIB_DIR)
 
 # Run target
 run: $(TARGET)
 	./$(TARGET)
+
+# Shared library target
+shared: $(OBJ_FILES)
+	@mkdir -p $(LIB_DIR)
+	$(CC) $(CFLAGS) -shared $^ $(LDFLAGS) -o $(SHARED_LIB)
+
+# Prevent object files from being deleted when using shared target
+.SECONDARY:
+
+# Prevent conflicts with files named "shared"
+.PHONY: shared
+
+# Add ".so" to the list of file extensions that make considers intermediate
+.INTERMEDIATE: $(SHARED_LIB)
+
+# Test target using luajit
+test: shared
+	luajit test/test.lua $(TEST_FILE)

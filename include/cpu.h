@@ -46,4 +46,7 @@ typedef struct {
 void cpu_init(CPU *cpu, uint8_t *rom);
 int cpu_step(CPU *cpu);
 
+extern void cpu_memory_set(CPU *cpu, uint16_t address, uint8_t value);
+extern uint8_t cpu_memory_get(CPU *cpu, uint16_t address);
+
 #endif // __CPU_H__

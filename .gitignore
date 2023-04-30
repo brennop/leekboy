@@ -3,4 +3,5 @@ compile_commands.json
 .cache
 bin
 obj
+lib
 *.gb

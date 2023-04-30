@@ -12,6 +12,14 @@
 #define CASE4_16(x) case x: case x + 16: case x + 32: case x + 48:
 #define CASE8_8(x) case x: case x + 8: case x + 16: case x + 24: case x + 32: case x + 40: case x + 48: case x + 56:
 
+void cpu_memory_set(CPU *cpu, uint16_t address, uint8_t value) {
+  memory_set(cpu->memory, address, value);
+}
+
+uint8_t cpu_memory_get(CPU *cpu, uint16_t address) {
+  return memory_get(cpu->memory, address);
+}
+
 void cpu_set_flags(CPU *cpu, uint8_t z, uint8_t n, uint8_t h, uint8_t c) {
   cpu->f = 0;
   cpu->f |= z << 7;
@@ -106,7 +114,7 @@ int cpu_step(CPU *cpu) {
   cpu->pc += instruction.bytes;
 
   // debug current instruction
-  printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic);
+  /* printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic); */
 
   switch(opcode) {
     case 0x00: /* NOP */ break;
