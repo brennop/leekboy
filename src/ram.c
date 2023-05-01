@@ -1,5 +1,7 @@
 #include "ram.h"
 
+#define ROM_TEST
+
 void ram_set(RAM *ram, uint16_t address, uint8_t value) {
   ram->data[address] = value;
 }

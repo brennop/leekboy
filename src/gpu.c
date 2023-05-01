@@ -52,14 +52,14 @@ void gpu_set_status(GPU *gpu) {
 
     // mode changed, request interrupt
     if (req_int && (mode != current_mode)) {
-      cpu_interrupt(gpu->cpu, I_LCDSTAT);
+      cpu_interrupt(gpu->cpu, INT_LCDSTAT);
     }
 
     // check coincidence
     if (vram_get(gpu->ram, LY) == ram_get(gpu->ram, LYC)) {
       status |= 0x04;
       if (status & 0x40) {
-        cpu_interrupt(gpu->cpu, I_LCDSTAT);
+        cpu_interrupt(gpu->cpu, INT_LCDSTAT);
       }
     } else {
       status &= ~0x04;
@@ -73,7 +73,6 @@ void gpu_step(GPU *gpu, int cycles) {
   gpu_set_status(gpu);
 
   if (!gpu_is_lcd_enabled(gpu)) {
-    printf("lcd is not enabled\n");
     return;
   }
 
@@ -81,7 +80,6 @@ void gpu_step(GPU *gpu, int cycles) {
 
   if (gpu->scanline <= 0) {
     // move to next scanline
-    printf("moving to next scanline\n");
     gpu->ram->data[LY]++;
 
     int current_line = vram_get(gpu->ram, LY);
@@ -90,7 +88,7 @@ void gpu_step(GPU *gpu, int cycles) {
 
     if (current_line == 144) {
       // request vblank interrupt
-      cpu_interrupt(gpu->cpu, I_VBLANK);
+      cpu_interrupt(gpu->cpu, INT_VBLANK);
     } else if (current_line > 153) {
       gpu->ram->data[LY] = 0;
     } else if (current_line < 144) {

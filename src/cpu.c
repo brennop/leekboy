@@ -262,36 +262,54 @@ static void cpu_cb(CPU *cpu) {
 
 int cpu_step(CPU *cpu) {
   // log
-  // eg. A:00 F:11 B:22 C:33 D:44 E:55 H:66 L:77 SP:8888 PC:9999 PCMEM:AA,BB,CC,DD
   printf("A:%02X F:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X SP:%04X PC:%04X PCMEM:%02X,%02X,%02X,%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l, cpu->sp, cpu->pc, ram_get(cpu->ram, cpu->pc), ram_get(cpu->ram, cpu->pc + 1), ram_get(cpu->ram, cpu->pc + 2), ram_get(cpu->ram, cpu->pc + 3));
   // track 0xFF44 (LY), 0xFF40 (LCDC), 0xFF41 (STAT)
-  printf("LY: %02X, LCDC: %02X, STAT: %02X\n", ram_get(cpu->ram, 0xFF44), ram_get(cpu->ram, 0xFF40), ram_get(cpu->ram, 0xFF41));
+  /* printf("LY: %02X, LCDC: %02X, STAT: %02X\n", ram_get(cpu->ram, 0xFF44), ram_get(cpu->ram, 0xFF40), ram_get(cpu->ram, 0xFF41)); */
+
+  // check interrupts
+  if (cpu->ime) {
+    uint8_t interrupt = cpu->ram->data[IE] & cpu->ram->data[IF];
+    if (interrupt) {
+      // no nested interrupts
+      cpu->ime = 0;
+
+      // save current pc to stack
+      cpu_push_stack(cpu, cpu->pc);
+
+      if (interrupt & INT_VBLANK) {
+        cpu->pc = 0x40;
+        cpu->ram->data[IF] &= ~INT_VBLANK;
+      } else if (interrupt & INT_LCDSTAT) {
+        cpu->pc = 0x48;
+        cpu->ram->data[IF] &= ~INT_LCDSTAT;
+      } else if (interrupt & INT_TIMER) {
+        cpu->pc = 0x50;
+        cpu->ram->data[IF] &= ~INT_TIMER;
+      } else if (interrupt & INT_SERIAL) {
+        cpu->pc = 0x58;
+        cpu->ram->data[IF] &= ~INT_SERIAL;
+      } else if (interrupt & INT_JOYPAD) {
+        cpu->pc = 0x60;
+        cpu->ram->data[IF] &= ~INT_JOYPAD;
+      } else {
+        printf("Unknown interrupt: 0x%02X\n", interrupt);
+        exit(1);
+      }
+    }
+  }
 
   // fetch the next instruction
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
 
-  // decode the instruction
   Instruction instruction = instructions[opcode];
+  /* printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic); */
 
-  if (cpu->pc == 0x2817) {
-    getchar();
-  }
-
-  // increment the program counter
   cpu->pc += instruction.bytes;
 
-  // debug current instruction
-  /* printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic); */
-  /* // debug registers */
-  /* printf("A: 0x%02X, F: 0x%02X, B: 0x%02X, C: 0x%02X, D: 0x%02X, E: 0x%02X, H: 0x%02X, L: 0x%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l); */
-  /* // debug flags */
-  /* printf("Z: %d, N: %d, H: %d, C: %d\n\n", ZEROF, SUBF, HALFF, CARRYF); */
-
-  // save operands before
   uint8_t nn = NN;
   uint16_t nnn = NNN;
-
   uint8_t carry = CARRYF;
+
   uint8_t cycles = instruction.cycles;
 
   switch(opcode) {
@@ -353,6 +371,5 @@ int cpu_step(CPU *cpu) {
     default: printf("Unknown opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
 
-  // return the number of cycles
   return cycles;
 }

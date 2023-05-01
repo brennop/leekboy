@@ -7,10 +7,11 @@
 #define IF 0xFF0F
 #define IE 0xFFFF
 
-#define I_VBLANK 0x01
-#define I_LCDSTAT 0x02
-#define I_TIMER 0x04
-#define I_SERIAL 0x08
+#define INT_VBLANK 0x01
+#define INT_LCDSTAT 0x02
+#define INT_TIMER 0x04
+#define INT_SERIAL 0x08
+#define INT_JOYPAD 0x10
 
 typedef struct {
   RAM *ram;
