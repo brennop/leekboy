@@ -134,7 +134,7 @@ local function run_tests(tests, cpu)
 end
 
 local function main()
-  def_header("memory")
+  def_header("ram")
   def_header("cpu")
 
   local tests = load_test()
