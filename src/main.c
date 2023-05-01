@@ -18,7 +18,7 @@ uint8_t* load_rom(char *filename) {
 }
 
 int main() {
-  uint8_t *rom = load_rom("tetris.gb");
+  uint8_t *rom = load_rom("individual/01-special.gb");
 
   cpu_init(&cpu, rom);
   gpu_init(&gpu, &cpu, cpu.ram);

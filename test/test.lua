@@ -113,7 +113,19 @@ local function run_test(test, cpu)
   for _, v in ipairs(test.final.ram) do
     address, value = unpack(v)
     address, value = tonumber(address), tonumber(value)
-    assert(lib.cpu_memory_get(cpu, address) == value)
+
+    local actual = lib.cpu_memory_get(cpu, address)
+
+    local message = [[
+
+    TEST FAILED
+      test: %s
+      address: 0x%04x
+      expected: 0x%04x
+      actual: 0x%04x
+    ]]
+
+    assert(actual == value, message:format(test.name, address, value, actual))
   end
 end
 

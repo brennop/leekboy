@@ -2,7 +2,7 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -Wall -Werror -std=c99 -Iinclude -fPIC `sdl2-config --cflags`
+CFLAGS = -Wall -Werror -std=c99 -Iinclude -fPIC `sdl2-config --cflags` -g
 
 # Linker flags
 LDFLAGS = `sdl2-config --libs`
