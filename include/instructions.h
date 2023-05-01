@@ -11,5 +11,6 @@ typedef struct {
 } Instruction;
 
 extern Instruction instructions[256];
+extern Instruction prefixed[256];
 
 #endif // __INSTRUCTIONS_H__
