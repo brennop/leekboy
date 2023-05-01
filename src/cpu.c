@@ -217,6 +217,18 @@ void cpu_init(CPU *cpu, uint8_t *rom) {
   cpu->e = 0xD8;
   cpu->h = 0x01;
   cpu->l = 0x4D;
+
+  // set memory values
+  // TODO: check missing values
+  // https://gbdev.io/pandocs/Power_Up_Sequence.html#hardware-registers
+  cpu->ram->data[0xFF00] = 0xCF;
+  cpu->ram->data[0xFF40] = 0x91;
+  cpu->ram->data[0xFF41] = 0x85;
+  cpu->ram->data[0xFF42] = 0x00;
+  cpu->ram->data[0xFF43] = 0x00;
+  cpu->ram->data[0xFF45] = 0x00;
+  cpu->ram->data[0xFF46] = 0xFF;
+  cpu->ram->data[0xFF47] = 0xFC;
 }
 
 static void cpu_cb(CPU *cpu) {
@@ -252,12 +264,18 @@ int cpu_step(CPU *cpu) {
   // log
   // eg. A:00 F:11 B:22 C:33 D:44 E:55 H:66 L:77 SP:8888 PC:9999 PCMEM:AA,BB,CC,DD
   printf("A:%02X F:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X SP:%04X PC:%04X PCMEM:%02X,%02X,%02X,%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l, cpu->sp, cpu->pc, ram_get(cpu->ram, cpu->pc), ram_get(cpu->ram, cpu->pc + 1), ram_get(cpu->ram, cpu->pc + 2), ram_get(cpu->ram, cpu->pc + 3));
+  // track 0xFF44 (LY), 0xFF40 (LCDC), 0xFF41 (STAT)
+  printf("LY: %02X, LCDC: %02X, STAT: %02X\n", ram_get(cpu->ram, 0xFF44), ram_get(cpu->ram, 0xFF40), ram_get(cpu->ram, 0xFF41));
 
   // fetch the next instruction
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
 
   // decode the instruction
   Instruction instruction = instructions[opcode];
+
+  if (cpu->pc == 0x2817) {
+    getchar();
+  }
 
   // increment the program counter
   cpu->pc += instruction.bytes;
@@ -274,6 +292,7 @@ int cpu_step(CPU *cpu) {
   uint16_t nnn = NNN;
 
   uint8_t carry = CARRYF;
+  uint8_t cycles = instruction.cycles;
 
   switch(opcode) {
     case 0x00: /* NOP */ break;
@@ -289,7 +308,7 @@ int cpu_step(CPU *cpu) {
     case 0x1F: cpu->f = (cpu->a & 1) << 4; cpu->a = (cpu->a >> 1) | (carry << 7); break;
     case 0x0A: case 0x1A: cpu->a = ram_get(cpu->ram, get_r16(cpu, opcode)); break;
     case 0x28: if(ZEROF) cpu->pc += (int8_t) nn; break;
-    case 0x20: if(!(ZEROF)) cpu->pc += (int8_t) nn; break;
+    case 0x20: if(!(ZEROF)) { cpu->pc += (int8_t) nn; cycles += 4; } break;
     case 0x30: if(!(CARRYF)) cpu->pc += (int8_t) nn; break;
     case 0x22: ram_set(cpu->ram, cpu->hl++, cpu->a); break;
     case 0x27: daa(cpu); break;
@@ -335,5 +354,5 @@ int cpu_step(CPU *cpu) {
   }
 
   // return the number of cycles
-  return instruction.cycles;
+  return cycles;
 }

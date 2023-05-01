@@ -1,10 +1,12 @@
 #include "gpu.h"
 #include "cpu.h"
 #include "ram.h"
+#include <stdio.h>
 
 void gpu_init(GPU *gpu, CPU *cpu, RAM *ram) {
   gpu->cpu = cpu;
   gpu->ram = ram;
+  gpu->scanline = 456;
 }
 
 static inline uint8_t gpu_is_lcd_enabled(GPU *gpu) {
@@ -71,6 +73,7 @@ void gpu_step(GPU *gpu, int cycles) {
   gpu_set_status(gpu);
 
   if (!gpu_is_lcd_enabled(gpu)) {
+    printf("lcd is not enabled\n");
     return;
   }
 
@@ -78,6 +81,7 @@ void gpu_step(GPU *gpu, int cycles) {
 
   if (gpu->scanline <= 0) {
     // move to next scanline
+    printf("moving to next scanline\n");
     gpu->ram->data[LY]++;
 
     int current_line = vram_get(gpu->ram, LY);

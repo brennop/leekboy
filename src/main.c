@@ -18,13 +18,16 @@ uint8_t* load_rom(char *filename) {
 }
 
 int main() {
-  uint8_t *rom = load_rom("individual/01-special.gb");
+  uint8_t *rom = load_rom("tetris.gb");
 
   cpu_init(&cpu, rom);
   gpu_init(&gpu, &cpu, cpu.ram);
 
+  int ticks = 0;
   while (1) {
+    printf("ticks: %d\n", ticks);
     int cycles = cpu_step(&cpu);
+    ticks += cycles;
     gpu_step(&gpu, cycles);
   }
 

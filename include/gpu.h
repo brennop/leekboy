@@ -13,11 +13,20 @@
 #define WY   0xFF4A
 #define WX   0xFF4B
 
+typedef enum {
+  MODE_HBLANK = 0,
+  MODE_VBLANK = 1,
+  MODE_OAM    = 2,
+  MODE_VRAM   = 3
+} Mode;
+
 typedef struct {
   RAM *ram;
   CPU *cpu;
+  Mode mode;
 
   uint8_t framebuffer[160][144];
+  int cycles;
   int scanline;
 } GPU;
 
