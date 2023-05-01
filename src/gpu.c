@@ -22,7 +22,7 @@ void gpu_set_status(GPU *gpu) {
     return;
   }
 
-  int current_line = ram_get(gpu->ram, LY);
+  int current_line = vram_get(gpu->ram, LY);
   int current_mode = status & 0x03;
   uint8_t mode = 0;
   uint8_t req_int = 0;
@@ -54,7 +54,7 @@ void gpu_set_status(GPU *gpu) {
     }
 
     // check coincidence
-    if (ram_get(gpu->ram, LY) == ram_get(gpu->ram, LYC)) {
+    if (vram_get(gpu->ram, LY) == ram_get(gpu->ram, LYC)) {
       status |= 0x04;
       if (status & 0x40) {
         cpu_interrupt(gpu->cpu, I_LCDSTAT);
@@ -80,7 +80,7 @@ void gpu_step(GPU *gpu, int cycles) {
     // move to next scanline
     gpu->ram->data[LY]++;
 
-    int current_line = ram_get(gpu->ram, LY);
+    int current_line = vram_get(gpu->ram, LY);
 
     gpu->scanline += 456;
 

@@ -103,6 +103,28 @@ static inline void set_r16(CPU *cpu, uint8_t opcode, uint16_t value) {
   }
 }
 
+static inline void daa(CPU *cpu) {
+  uint8_t correction = 0;
+  uint8_t set_carry = 0;
+
+  if (HALFF || (!(SUBF) && (cpu->a & 0x0F) > 9)) {
+    correction |= 0x06;
+  }
+
+  if (CARRYF || (!(SUBF) && cpu->a > 0x99)) {
+    correction |= 0x60;
+    set_carry = 1;
+  }
+
+  if (SUBF) {
+    cpu->a -= correction;
+  } else {
+    cpu->a += correction;
+  }
+
+  cpu_set_flags(cpu, cpu->a == 0, SUBF, 0, set_carry);
+}
+
 static inline void cp_a_r8(CPU *cpu, uint8_t value) {
   uint8_t result = cpu->a - value;
 
@@ -199,10 +221,10 @@ void cpu_init(CPU *cpu, uint8_t *rom) {
 
 static void cpu_cb(CPU *cpu) {
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
-
   Instruction instruction = prefixed[opcode];
 
-  cpu->pc += instruction.bytes;
+  // remove 1 that was added on main step
+  cpu->pc += instruction.bytes - 1;
 
   uint8_t value = get_r8(cpu, opcode);
   uint8_t carry = CARRYF;
@@ -216,17 +238,20 @@ static void cpu_cb(CPU *cpu) {
       cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
       break;
     case 0x38 ... 0x3F:
-      cpu_set_flags(cpu, value & 1, 0, 0, 0);
-      set_r8(cpu, opcode, value >> 1);
+      set_carry = value & 1;
+      value >>= 1;
+      cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
       break;
     default: printf("Unknown cb opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
+
+  set_r8(cpu, opcode, value);
 }
 
 int cpu_step(CPU *cpu) {
   // log
   // eg. A:00 F:11 B:22 C:33 D:44 E:55 H:66 L:77 SP:8888 PC:9999 PCMEM:AA,BB,CC,DD
-  /* printf("A:%02X F:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X SP:%04X PC:%04X PCMEM:%02X,%02X,%02X,%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l, cpu->sp, cpu->pc, ram_get(cpu->ram, cpu->pc), ram_get(cpu->ram, cpu->pc + 1), ram_get(cpu->ram, cpu->pc + 2), ram_get(cpu->ram, cpu->pc + 3)); */
+  printf("A:%02X F:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X SP:%04X PC:%04X PCMEM:%02X,%02X,%02X,%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l, cpu->sp, cpu->pc, ram_get(cpu->ram, cpu->pc), ram_get(cpu->ram, cpu->pc + 1), ram_get(cpu->ram, cpu->pc + 2), ram_get(cpu->ram, cpu->pc + 3));
 
   // fetch the next instruction
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
@@ -267,6 +292,7 @@ int cpu_step(CPU *cpu) {
     case 0x20: if(!(ZEROF)) cpu->pc += (int8_t) nn; break;
     case 0x30: if(!(CARRYF)) cpu->pc += (int8_t) nn; break;
     case 0x22: ram_set(cpu->ram, cpu->hl++, cpu->a); break;
+    case 0x27: daa(cpu); break;
     case 0x2A: cpu->a = ram_get(cpu->ram, cpu->hl++); break;
     case 0x2F: cpu->a = ~cpu->a; cpu_set_flags(cpu, ZEROF, 1, 1, CARRYF); break;
     case 0x32: ram_set(cpu->ram, cpu->hl--, cpu->a); break;
@@ -278,7 +304,7 @@ int cpu_step(CPU *cpu) {
     case 0xA0 ... 0xA7: and_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xA8 ... 0xAF: xor_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xB0 ... 0xB7: or_a_r8(cpu, get_r8(cpu, opcode)); break;
-    case 0xBB ... 0xBF: cp_a_r8(cpu, get_r8(cpu, opcode)); break;
+    case 0xB8 ... 0xBF: cp_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xC2: if(!(ZEROF)) cpu->pc = nnn; break;
     case 0xC3: cpu->pc = nnn; break;
     case 0xC4: if(!(ZEROF)) { cpu_push_stack(cpu, cpu->pc); cpu->pc = nnn; } break;
@@ -289,7 +315,7 @@ int cpu_step(CPU *cpu) {
     case 0xD8: if(CARRYF) cpu->pc = cpu_pop_stack(cpu); break;
     case 0xCB: cpu_cb(cpu); break;
     case 0xC1: case 0xD1: case 0xE1: set_r16(cpu, opcode, cpu_pop_stack(cpu)); break;
-    case 0xF1: cpu->af = cpu_pop_stack(cpu); break;
+    case 0xF1: cpu->af = cpu_pop_stack(cpu) & 0xFFF0; break;
     case 0xC9: cpu->pc = cpu_pop_stack(cpu); break;
     case 0xCD: cpu_push_stack(cpu, cpu->pc); cpu->pc = nnn; break;
     case 0xD0: if(!(CARRYF)) cpu->pc = cpu_pop_stack(cpu); break;
@@ -299,7 +325,7 @@ int cpu_step(CPU *cpu) {
     case 0xEA: ram_set(cpu->ram, nnn, cpu->a); break;
     case 0xE9: cpu->pc = cpu->hl; break;
     case 0xEE: xor_a_r8(cpu, nn); break;
-    case 0xF0: cpu->a = ram_get(cpu->ram, 0xFF00 + nn); break;
+    case 0xF0: cpu->a = vram_get(cpu->ram, 0xFF00 + nn); break;
     case 0xF3: case 0xFB: cpu->ime = opcode == 0xFB; break;
     case 0xFA: cpu->a = ram_get(cpu->ram, nnn); break;
     case 0xFE: cp_a_r8(cpu, nn); break;
