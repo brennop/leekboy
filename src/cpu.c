@@ -207,6 +207,33 @@ static inline void ld_hl_sp(CPU *cpu, uint8_t value) {
   cpu->hl = result;
 }
 
+static inline void update_timer(CPU *cpu) {
+  // update DIV
+  if (cpu->cycles % 64 == 0) {
+    ram_set(cpu->ram, MEM_DIV, ram_get(cpu->ram, MEM_DIV) + 1);
+  }
+
+  // update TIMA
+  if (ram_get(cpu->ram, MEM_TAC) & 0x04) {
+    uint16_t freqs[] = { 1024, 16, 64, 256 };
+    uint8_t freq = ram_get(cpu->ram, MEM_TAC) & 0x03;
+    uint16_t c = freqs[freq];
+
+    if (cpu->cycles % c == 0) {
+      uint8_t tima = ram_get(cpu->ram, MEM_TIMA);
+      tima++;
+
+      if (tima == 0) {
+        ram_set(cpu->ram, MEM_TIMA, ram_get(cpu->ram, MEM_TMA));
+        cpu_interrupt(cpu, INT_TIMER);
+      } else {
+        ram_set(cpu->ram, MEM_TIMA, tima);
+      }
+    }
+  }
+
+}
+
 void cpu_init(CPU *cpu, uint8_t *rom) {
   // allocate ram for the cpu
   cpu->ram = malloc(0x10000);
@@ -273,6 +300,8 @@ static void cpu_cb(CPU *cpu) {
 }
 
 int cpu_step(CPU *cpu) {
+  update_timer(cpu);
+
   // check interrupts
   if (cpu->ime) {
     uint8_t interrupt = cpu->ram->data[IE] & cpu->ram->data[IF];
@@ -388,5 +417,6 @@ int cpu_step(CPU *cpu) {
     default: printf("Unknown opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
 
+  cpu->cycles += cycles;
   return cycles;
 }

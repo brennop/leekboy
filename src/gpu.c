@@ -88,7 +88,7 @@ void gpu_step(GPU *gpu, int cycles) {
 
     if (current_line == 144) {
       // request vblank interrupt
-      cpu_interrupt(gpu->cpu, INT_VBLANK);
+      /* cpu_interrupt(gpu->cpu, INT_VBLANK); */
     } else if (current_line > 153) {
       gpu->ram->data[LY] = 0;
     } else if (current_line < 144) {

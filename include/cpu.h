@@ -13,6 +13,11 @@
 #define INT_SERIAL 0x08
 #define INT_JOYPAD 0x10
 
+#define MEM_DIV 0xFF04
+#define MEM_TIMA 0xFF05
+#define MEM_TMA 0xFF06
+#define MEM_TAC 0xFF07
+
 typedef struct {
   RAM *ram;
 
@@ -52,6 +57,8 @@ typedef struct {
   uint16_t pc;
 
   uint8_t ime;
+
+  int cycles;
 } CPU;
 
 void cpu_init(CPU *cpu, uint8_t *rom);
