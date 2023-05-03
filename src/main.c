@@ -18,7 +18,7 @@ uint8_t* load_rom(char *filename) {
 }
 
 int main() {
-  uint8_t *rom = load_rom("individual/02-interrupts.gb");
+  uint8_t *rom = load_rom("individual/04-op r,imm.gb");
 
   cpu_init(&cpu, rom);
   gpu_init(&gpu, &cpu, cpu.ram);

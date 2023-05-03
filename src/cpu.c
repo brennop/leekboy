@@ -156,6 +156,16 @@ static inline void sub_a_r8(CPU *cpu, uint8_t value) {
   cpu_set_flags(cpu, cpu->a == 0, 1, half_carry, carry);
 }
 
+static inline void sbc_a_r8(CPU *cpu, uint8_t value) {
+  uint16_t result = cpu->a - value - (CARRYF);
+
+  uint8_t half_carry = (((cpu->a & 0x0F) - (value & 0x0F) - (CARRYF)) >> 4) & 1;
+  uint8_t carry = (result >> 8) & 1;
+
+  cpu->a -= value + (CARRYF);
+  cpu_set_flags(cpu, cpu->a == 0, 1, half_carry, carry);
+}
+
 static inline void xor_a_r8(CPU *cpu, uint8_t value) {
   cpu->a ^= value;
   cpu_set_flags(cpu, cpu->a == 0, 0, 0, 0);
@@ -195,7 +205,7 @@ static inline void add_hl_r16(CPU *cpu, uint8_t opcode) {
   cpu->hl += value;
 }
 
-static inline void ld_hl_sp(CPU *cpu, uint8_t value) {
+static inline void add_sp(CPU *cpu, uint8_t value, uint16_t *target) {
   int8_t offset = (int8_t)value;
   uint32_t result = cpu->sp + offset;
 
@@ -204,7 +214,7 @@ static inline void ld_hl_sp(CPU *cpu, uint8_t value) {
   int xor = result ^ cpu->sp ^ offset;
 
   cpu_set_flags(cpu, 0, 0, (xor & 0x10) == 0x10, (xor & 0x100) == 0x100);
-  cpu->hl = result;
+  *target = result;
 }
 
 static inline void update_timer(CPU *cpu) {
@@ -365,6 +375,7 @@ int cpu_step(CPU *cpu) {
     CASE4_16(0x09) add_hl_r16(cpu, opcode); break;
     CASE4_16(0x03) set_r16(cpu, opcode, get_r16(cpu, opcode) + 1); break;
     CASE4_16(0x0B) set_r16(cpu, opcode, get_r16(cpu, opcode) - 1); break;
+    case 0x08: ram_set_word(cpu->ram, nnn, cpu->sp); break;
     case 0x12: ram_set(cpu->ram, cpu->de, cpu->a); break;
     case 0x18: cpu->pc += (int8_t) nn; break;
     case 0x1F: cpu->f = (cpu->a & 1) << 4; cpu->a = (cpu->a >> 1) | (carry << 7); break;
@@ -382,6 +393,7 @@ int cpu_step(CPU *cpu) {
     case 0x80 ... 0x87: add_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0x88 ... 0x8F: adc_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0x90 ... 0x97: sub_a_r8(cpu, get_r8(cpu, opcode)); break;
+    case 0x98 ... 0x9F: sbc_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xA0 ... 0xA7: and_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xA8 ... 0xAF: xor_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xB0 ... 0xB7: or_a_r8(cpu, get_r8(cpu, opcode)); break;
@@ -403,17 +415,21 @@ int cpu_step(CPU *cpu) {
     case 0xD0: if(!(CARRYF)) cpu->pc = cpu_pop_stack(cpu); break;
     case 0xE0: ram_set(cpu->ram, 0xFF00 + nn, cpu->a); break;
     case 0xE2: ram_set(cpu->ram, 0xFF00 + cpu->c, cpu->a); break;
+    case 0xDE: sbc_a_r8(cpu, nn); break;
     case 0xE6: and_a_r8(cpu, nn); break;
     case 0xEA: ram_set(cpu->ram, nnn, cpu->a); break;
+    case 0xE8: add_sp(cpu, nn, &cpu->sp); break;
     case 0xE9: cpu->pc = cpu->hl; break;
     case 0xEE: xor_a_r8(cpu, nn); break;
     case 0xF0: cpu->a = vram_get(cpu->ram, 0xFF00 + nn); break;
     case 0xF3: case 0xFB: cpu->ime = opcode == 0xFB; break;
-    case 0xF8: ld_hl_sp(cpu, nn); break;
+    case 0xF6: or_a_r8(cpu, nn); break;
+    case 0xF8: add_sp(cpu, nn, &cpu->hl); break;
     case 0xFA: cpu->a = ram_get(cpu->ram, nnn); break;
     case 0xFE: cp_a_r8(cpu, nn); break;
     case 0xC5: case 0xD5: case 0xE5: cpu_push_stack(cpu, get_r16(cpu, opcode)); break;
     case 0xF5: cpu_push_stack(cpu, cpu->af); break;
+    case 0xF9: cpu->sp = cpu->hl; break;
     default: printf("Unknown opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
 
