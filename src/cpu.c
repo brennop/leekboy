@@ -195,6 +195,18 @@ static inline void add_hl_r16(CPU *cpu, uint8_t opcode) {
   cpu->hl += value;
 }
 
+static inline void ld_hl_sp(CPU *cpu, uint8_t value) {
+  int8_t offset = (int8_t)value;
+  uint32_t result = cpu->sp + offset;
+
+  // taken from mimic
+  // don't know why this works
+  int xor = result ^ cpu->sp ^ offset;
+
+  cpu_set_flags(cpu, 0, 0, (xor & 0x10) == 0x10, (xor & 0x100) == 0x100);
+  cpu->hl = result;
+}
+
 void cpu_init(CPU *cpu, uint8_t *rom) {
   // allocate ram for the cpu
   cpu->ram = malloc(0x10000);
@@ -261,11 +273,6 @@ static void cpu_cb(CPU *cpu) {
 }
 
 int cpu_step(CPU *cpu) {
-  // log
-  printf("A:%02X F:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X SP:%04X PC:%04X PCMEM:%02X,%02X,%02X,%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l, cpu->sp, cpu->pc, ram_get(cpu->ram, cpu->pc), ram_get(cpu->ram, cpu->pc + 1), ram_get(cpu->ram, cpu->pc + 2), ram_get(cpu->ram, cpu->pc + 3));
-  // track 0xFF44 (LY), 0xFF40 (LCDC), 0xFF41 (STAT)
-  /* printf("LY: %02X, LCDC: %02X, STAT: %02X\n", ram_get(cpu->ram, 0xFF44), ram_get(cpu->ram, 0xFF40), ram_get(cpu->ram, 0xFF41)); */
-
   // check interrupts
   if (cpu->ime) {
     uint8_t interrupt = cpu->ram->data[IE] & cpu->ram->data[IF];
@@ -295,8 +302,16 @@ int cpu_step(CPU *cpu) {
         printf("Unknown interrupt: 0x%02X\n", interrupt);
         exit(1);
       }
+
+      /* return 0; */
     }
   }
+
+  // log
+  printf("A:%02X F:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X SP:%04X PC:%04X PCMEM:%02X,%02X,%02X,%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l, cpu->sp, cpu->pc, ram_get(cpu->ram, cpu->pc), ram_get(cpu->ram, cpu->pc + 1), ram_get(cpu->ram, cpu->pc + 2), ram_get(cpu->ram, cpu->pc + 3));
+  // track 0xFF44 (LY), 0xFF40 (LCDC), 0xFF41 (STAT)
+  /* printf("LY: %02X, LCDC: %02X, STAT: %02X\n", ram_get(cpu->ram, 0xFF44), ram_get(cpu->ram, 0xFF40), ram_get(cpu->ram, 0xFF41)); */
+
 
   // fetch the next instruction
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
@@ -346,6 +361,7 @@ int cpu_step(CPU *cpu) {
     case 0xC3: cpu->pc = nnn; break;
     case 0xC4: if(!(ZEROF)) { cpu_push_stack(cpu, cpu->pc); cpu->pc = nnn; } break;
     case 0xC8: if(ZEROF) cpu->pc = cpu_pop_stack(cpu); break;
+    case 0xCA: if(ZEROF) cpu->pc = nnn; break;
     case 0xCE: adc_a_r8(cpu, nn); break;
     case 0xC6: add_a_r8(cpu, nn); break;
     case 0xD6: sub_a_r8(cpu, nn); break;
@@ -364,6 +380,7 @@ int cpu_step(CPU *cpu) {
     case 0xEE: xor_a_r8(cpu, nn); break;
     case 0xF0: cpu->a = vram_get(cpu->ram, 0xFF00 + nn); break;
     case 0xF3: case 0xFB: cpu->ime = opcode == 0xFB; break;
+    case 0xF8: ld_hl_sp(cpu, nn); break;
     case 0xFA: cpu->a = ram_get(cpu->ram, nnn); break;
     case 0xFE: cp_a_r8(cpu, nn); break;
     case 0xC5: case 0xD5: case 0xE5: cpu_push_stack(cpu, get_r16(cpu, opcode)); break;
