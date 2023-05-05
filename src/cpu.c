@@ -311,10 +311,24 @@ static void cpu_cb(CPU *cpu) {
       if(carry) value |= 0x80;
       cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
       break;
+    case 0x30 ... 0x37: // SWAP
+      value = ((value & 0xF) << 4) | ((value & 0xF0) >> 4);
+      cpu_set_flags(cpu, value == 0, 0, 0, 0);
+      break;
     case 0x38 ... 0x3F:
       set_carry = value & 1;
       value >>= 1;
       cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
+      break;
+    case 0x40 ... 0x7F: // BIT
+      set_carry = (value >> ((opcode - 0x40) / 8)) & 1;
+      cpu_set_flags(cpu, 0, 0, 1, set_carry);
+      break;
+    case 0x80 ... 0xBF: // RES
+      value &= ~(1 << ((opcode - 0x80) / 8));
+      break;
+    case 0xC0 ... 0xFF: // SET
+      value |= 1 << ((opcode - 0xC0) / 8);
       break;
     default: printf("Unknown cb opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
@@ -458,6 +472,7 @@ int cpu_step(CPU *cpu) {
     case 0xC5: case 0xD5: case 0xE5: cpu_push_stack(cpu, get_r16(cpu, opcode)); break;
     case 0xF5: cpu_push_stack(cpu, cpu->af); break;
     case 0xF9: cpu->sp = cpu->hl; break;
+    CASE8_8(0xC7) { cpu_push_stack(cpu, cpu->pc); cpu->pc = opcode & 0x38; } break;
     default: printf("Unknown opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
 
