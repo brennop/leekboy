@@ -3,8 +3,11 @@
 #include "ram.h"
 #include <stdio.h>
 
+const int colors[] = {0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000};
+
 static void gpu_render_tiles(GPU *gpu);
 static void gpu_render_sprites(GPU *gpu);
+static inline int get_color(GPU *gpu, uint8_t value, uint16_t pallete);
 
 void gpu_init(GPU *gpu, CPU *cpu, RAM *ram) {
   gpu->cpu = cpu;
@@ -125,64 +128,68 @@ static void gpu_render_tiles(GPU *gpu) {
   uint8_t window_x = ram_get(gpu->ram, WX) - 7;
 
   uint8_t window_enabled = lcdc & 0x20;
-  uint8_t using_window = 0;
 
-  if (window_enabled) {
-    if (window_y <= ram_get(gpu->ram, LY)) {
-      using_window = 1;
-    }
-  }
+  int ly = ram_get(gpu->ram, LY);
 
-  uint8_t is_unsigned = lcdc & 0x10;
+  // is current scanline within window?
+  uint8_t using_window = window_enabled && (window_y <= ly);
+
+  // which tile data are we using?
+  uint8_t is_unsigned = lcdc & LCDC_TILE_DATA_AREA;
   uint16_t tile_data = is_unsigned ? 0x8000 : 0x8800;
 
-  uint16_t background_memory = using_window ? (lcdc & 0x40 ? 0x9C00 : 0x9800)
-                                            : (lcdc & 0x08 ? 0x9C00 : 0x9800);
+  // which bg memory are we using?
+  uint16_t background_memory =
+      lcdc & (using_window ? LCDC_WND_TILEMAP_AREA : LCDC_BG_TILEMAP_AREA)
+          ? 0x9C00
+          : 0x9800;
 
-  uint8_t y_pos = using_window ? ram_get(gpu->ram, LY) - window_y
-                               : scroll_y + ram_get(gpu->ram, LY);
+  // which of the 32 vertical tiles does the scanline fall into?
+  uint8_t y_pos = using_window ? ly - window_y : scroll_y + ly;
 
-  uint16_t tile_row = (y_pos / 8) * 32;
+  // which of the 8 vertical pixels of the tile does the scanline fall into?
+  uint16_t tile_row = (y_pos >> 3) << 5;
 
+  // draw each pixel of this scanline
   for (int pixel = 0; pixel < 160; pixel++) {
     uint8_t x_pos = pixel + scroll_x;
 
-    if (using_window) {
-      if (pixel >= window_x) {
-        x_pos = pixel - window_x;
-      }
+    // if window, translate to window space
+    if (using_window && pixel >= window_x) {
+      x_pos = pixel - window_x;
     }
 
-    uint16_t tile_col = x_pos / 8;
+    // which of the 32 horizontal tiles does this pixel fall into?
+    uint16_t tile_col = x_pos >> 3;
 
     uint16_t tile_address = background_memory + tile_row + tile_col;
     int16_t tile_num = is_unsigned ? (int8_t)ram_get(gpu->ram, tile_address)
                                    : (int16_t)ram_get(gpu->ram, tile_address);
 
+    // if unsigned, +128 to tile number
     uint16_t tile_location =
-        tile_data + (is_unsigned ? tile_num * 16 : (tile_num + 128) * 16);
+        tile_data + ((is_unsigned << 3) ^ 128) + (tile_num << 4);
 
     uint8_t line = (y_pos % 8) << 1;
-    uint8_t data_left = ram_get(gpu->ram, tile_location + line);
-    uint8_t data_right = ram_get(gpu->ram, tile_location + line + 1);
+    uint8_t data_right = ram_get(gpu->ram, tile_location + line);
+    uint8_t data_left = ram_get(gpu->ram, tile_location + line + 1);
 
     // TODO: understand this
-    int color_bit = (x_pos % 8) - 7;
-    color_bit *= -1;
+    int color_bit = ((x_pos % 8) - 7) * -1;
 
     // combine data
-    int color_num = (data_right & (1 << color_bit)) >> color_bit;
-    color_num <<= 1;
-    color_num |= (data_left & (1 << color_bit)) >> color_bit;
-
-    // TODO: get color from palette
-    // for now, just use color_num as color
-    int colors[] = {0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000};
+    int color_num = ((data_left & (1 << color_bit)) >> color_bit) << 1 |
+                    (data_right & (1 << color_bit)) >> color_bit;
 
     // write color to framebuffer
-    int ly = ram_get(gpu->ram, LY);
-    gpu->framebuffer[pixel + (ly * 160)] = colors[color_num];
+    gpu->framebuffer[pixel + (ly * 160)] =
+        get_color(gpu, color_num, ram_get(gpu->ram, PAL_BGP));
   }
 }
 
 static void gpu_render_sprites(GPU *gpu) {}
+
+static inline int get_color(GPU *gpu, uint8_t value, uint16_t palette) {
+  return colors[((palette >> ((value << 1) | 1)) & 0x01) << 1 |
+                ((palette >> (value << 1)) & 0x01)];
+}
