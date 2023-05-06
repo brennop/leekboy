@@ -5,6 +5,7 @@
 #include "cpu.h"
 #include "frontend.h"
 #include "gpu.h"
+#include "emulator.h"
 
 uint8_t ROM[0x200000];
 
@@ -21,10 +22,17 @@ int main() {
   GPU gpu;
   Frontend frontend;
 
+  // TODO: move to emulator_init
+  Emulator emulator;
+  emulator.cpu = &cpu;
+  emulator.gpu = &gpu;
+
   uint8_t *rom = load_rom("tetris.gb");
 
   cpu_init(&cpu, rom);
   gpu_init(&gpu, &cpu, cpu.ram);
+
+  cpu.ram->input = &emulator.input;
 
   frontend_init(&frontend);
 
@@ -37,7 +45,7 @@ int main() {
       gpu_step(&gpu, cycles);
     }
 
-    frontend_update(&frontend, gpu.framebuffer, &cpu);
+    frontend_update(&frontend, &emulator);
   }
 
   return 0;

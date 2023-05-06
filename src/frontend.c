@@ -26,29 +26,10 @@ void frontend_init(Frontend *frontend) {
 
   frontend->renderer = renderer;
   frontend->texture = texture;
-
-  frontend->input = (Input){0, 0, 0, 0, 0, 0, 0, 0};
 }
 
-void frontend_update(Frontend *frontend, int framebuffer[160 * 144], CPU *cpu) {
+void frontend_update(Frontend *frontend, Emulator *emulator) {
   uint8_t should_interrupt = 0;
-
-  // input
-  uint8_t joypad = (~ram_get(cpu->ram, RAM_JOYP)) & 0b00110000;
-  if (joypad & 0x10) {
-    if (frontend->input.right) joypad |= 0b1110;
-    if (frontend->input.left) joypad |= 0b1101;
-    if (frontend->input.up) joypad |= 0b1011;
-    if (frontend->input.down) joypad |= 0b0111;
-  }
-  if (joypad & 0x20) {
-    if (frontend->input.a) joypad |= 0b1110;
-    if (frontend->input.b) joypad |= 0b1101;
-    if (frontend->input.select) joypad |= 0b1011;
-    if (frontend->input.start) joypad |= 0b0111;
-  }
-  ram_set(cpu->ram, RAM_JOYP, ~joypad & 0x3F);
-  printf("ram[0xFF00] = %02X\n", ram_get(cpu->ram, RAM_JOYP));
 
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
@@ -60,31 +41,31 @@ void frontend_update(Frontend *frontend, int framebuffer[160 * 144], CPU *cpu) {
     if (event.type == SDL_KEYDOWN) {
       should_interrupt = 1;
       switch (event.key.keysym.sym) {
-      case SDLK_UP:        frontend->input.up = 1; break;
-      case SDLK_DOWN:      frontend->input.down = 1; break;
-      case SDLK_LEFT:      frontend->input.left = 1; break;
-      case SDLK_RIGHT:     frontend->input.right = 1; break;
-      case SDLK_z:         frontend->input.a = 1; break;
-      case SDLK_x:         frontend->input.b = 1; break;
-      case SDLK_RETURN:    frontend->input.start = 1; break;
-      case SDLK_BACKSPACE: frontend->input.select = 1; break;
+      case SDLK_UP:        emulator->input.up = 1; break;
+      case SDLK_DOWN:      emulator->input.down = 1; break;
+      case SDLK_LEFT:      emulator->input.left = 1; break;
+      case SDLK_RIGHT:     emulator->input.right = 1; break;
+      case SDLK_z:         emulator->input.a = 1; break;
+      case SDLK_x:         emulator->input.b = 1; break;
+      case SDLK_RETURN:    emulator->input.start = 1; break;
+      case SDLK_BACKSPACE: emulator->input.select = 1; break;
       }
     }
     else if (event.type == SDL_KEYUP) {
       switch (event.key.keysym.sym) {
-      case SDLK_UP:        frontend->input.up = 0; break;
-      case SDLK_DOWN:      frontend->input.down = 0; break;
-      case SDLK_LEFT:      frontend->input.left = 0; break;
-      case SDLK_RIGHT:     frontend->input.right = 0; break;
-      case SDLK_z:         frontend->input.a = 0; break;
-      case SDLK_x:         frontend->input.b = 0; break;
-      case SDLK_RETURN:    frontend->input.start = 0; break;
-      case SDLK_BACKSPACE: frontend->input.select = 0; break;
+      case SDLK_UP:        emulator->input.up = 0; break;
+      case SDLK_DOWN:      emulator->input.down = 0; break;
+      case SDLK_LEFT:      emulator->input.left = 0; break;
+      case SDLK_RIGHT:     emulator->input.right = 0; break;
+      case SDLK_z:         emulator->input.a = 0; break;
+      case SDLK_x:         emulator->input.b = 0; break;
+      case SDLK_RETURN:    emulator->input.start = 0; break;
+      case SDLK_BACKSPACE: emulator->input.select = 0; break;
       }
     }
   }
 
-  if (should_interrupt) cpu_interrupt(cpu, INT_JOYPAD);
+  if (should_interrupt) cpu_interrupt(emulator->cpu, INT_JOYPAD);
 
   // draw
   SDL_SetRenderDrawColor(frontend->renderer, 0, 0, 0, 255);
@@ -97,11 +78,11 @@ void frontend_update(Frontend *frontend, int framebuffer[160 * 144], CPU *cpu) {
   rect.w = 160 * 2;
   rect.h = 144 * 2;
 
-  SDL_UpdateTexture(frontend->texture, NULL, framebuffer,
+  SDL_UpdateTexture(frontend->texture, NULL, emulator->gpu->framebuffer,
                     160 * sizeof(uint32_t));
   SDL_RenderCopy(frontend->renderer, frontend->texture, NULL, &rect);
 
-  frontend_draw_tiles(frontend, cpu->ram->data + 0x8000);
+  frontend_draw_tiles(frontend, emulator->cpu->ram->data + 0x8000);
 
   SDL_RenderPresent(frontend->renderer);
 }
