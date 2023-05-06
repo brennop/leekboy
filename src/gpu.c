@@ -3,6 +3,9 @@
 #include "ram.h"
 #include <stdio.h>
 
+static void gpu_render_tiles(GPU *gpu);
+static void gpu_render_sprites(GPU *gpu);
+
 void gpu_init(GPU *gpu, CPU *cpu, RAM *ram) {
   gpu->cpu = cpu;
   gpu->ram = ram;
@@ -102,6 +105,84 @@ void gpu_step(GPU *gpu, int cycles) {
 }
 
 void gpu_render_scanline(GPU *gpu) {
+  uint8_t lcdc = ram_get(gpu->ram, LCDC);
 
+  if (lcdc & 0x01) {
+    gpu_render_tiles(gpu);
+  }
+
+  if (lcdc & 0x02) {
+    gpu_render_sprites(gpu);
+  }
 }
 
+static void gpu_render_tiles(GPU *gpu) {
+  uint8_t lcdc = ram_get(gpu->ram, LCDC);
+
+  uint8_t scroll_y = ram_get(gpu->ram, SCY);
+  uint8_t scroll_x = ram_get(gpu->ram, SCX);
+  uint8_t window_y = ram_get(gpu->ram, WY);
+  uint8_t window_x = ram_get(gpu->ram, WX) - 7;
+
+  uint8_t window_enabled = lcdc & 0x20;
+  uint8_t using_window = 0;
+
+  if (window_enabled) {
+    if (window_y <= ram_get(gpu->ram, LY)) {
+      using_window = 1;
+    }
+  }
+
+  uint8_t is_unsigned = lcdc & 0x10;
+  uint16_t tile_data = is_unsigned ? 0x8000 : 0x8800;
+
+  uint16_t background_memory = using_window ? (lcdc & 0x40 ? 0x9C00 : 0x9800)
+                                            : (lcdc & 0x08 ? 0x9C00 : 0x9800);
+
+  uint8_t y_pos = using_window ? ram_get(gpu->ram, LY) - window_y
+                               : scroll_y + ram_get(gpu->ram, LY);
+
+  uint16_t tile_row = (y_pos / 8) * 32;
+
+  for (int pixel = 0; pixel < 160; pixel++) {
+    uint8_t x_pos = pixel + scroll_x;
+
+    if (using_window) {
+      if (pixel >= window_x) {
+        x_pos = pixel - window_x;
+      }
+    }
+
+    uint16_t tile_col = x_pos / 8;
+
+    uint16_t tile_address = background_memory + tile_row + tile_col;
+    int16_t tile_num = is_unsigned ? (int8_t)ram_get(gpu->ram, tile_address)
+                                   : (int16_t)ram_get(gpu->ram, tile_address);
+
+    uint16_t tile_location =
+        tile_data + (is_unsigned ? tile_num * 16 : (tile_num + 128) * 16);
+
+    uint8_t line = (y_pos % 8) << 1;
+    uint8_t data_left = ram_get(gpu->ram, tile_location + line);
+    uint8_t data_right = ram_get(gpu->ram, tile_location + line + 1);
+
+    // TODO: understand this
+    int color_bit = (x_pos % 8) - 7;
+    color_bit *= -1;
+
+    // combine data
+    int color_num = (data_right & (1 << color_bit)) >> color_bit;
+    color_num <<= 1;
+    color_num |= (data_left & (1 << color_bit)) >> color_bit;
+
+    // TODO: get color from palette
+    // for now, just use color_num as color
+    int colors[] = {0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000};
+
+    // write color to framebuffer
+    int ly = ram_get(gpu->ram, LY);
+    gpu->framebuffer[pixel + (ly * 160)] = colors[color_num];
+  }
+}
+
+static void gpu_render_sprites(GPU *gpu) {}
