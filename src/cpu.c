@@ -340,7 +340,7 @@ inline void trace_01(CPU *cpu) {
   printf("A:%02X F:%02X B:%02X C:%02X D:%02X E:%02X H:%02X L:%02X SP:%04X PC:%04X PCMEM:%02X,%02X,%02X,%02X\n", cpu->a, cpu->f, cpu->b, cpu->c, cpu->d, cpu->e, cpu->h, cpu->l, cpu->sp, cpu->pc, ram_get(cpu->ram, cpu->pc), ram_get(cpu->ram, cpu->pc + 1), ram_get(cpu->ram, cpu->pc + 2), ram_get(cpu->ram, cpu->pc + 3));
 }
 
-static inline void trace_02(CPU *cpu, Instruction ins) {
+inline void trace_02(CPU *cpu, Instruction ins) {
   // A:01 F:Z-HC BC:0013 DE:00d8 HL:014d SP:fffe PC:0101 (cy: 12345) | c3 50 01  jp $0150       
   char z_flag = ZEROF ? 'Z' : '-';
   char n_flag = SUBF ? 'N' : '-';
@@ -398,9 +398,6 @@ int cpu_step(CPU *cpu) {
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
 
   Instruction instruction = instructions[opcode];
-  /* printf("0x%04X: 0x%02X, %s\n\n", cpu->pc - instruction.bytes, opcode, instruction.mnemonic); */
-
-  trace_02(cpu, instruction);
 
   cpu->pc += instruction.bytes;
 
