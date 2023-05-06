@@ -7,6 +7,10 @@ void gpu_init(GPU *gpu, CPU *cpu, RAM *ram) {
   gpu->cpu = cpu;
   gpu->ram = ram;
   gpu->scanline = 456;
+
+  for (int i = 0; i < 160 * 144; i++) {
+    gpu->framebuffer[i] = 0x00;
+  }
 }
 
 static inline uint8_t gpu_is_lcd_enabled(GPU *gpu) {
@@ -98,5 +102,6 @@ void gpu_step(GPU *gpu, int cycles) {
 }
 
 void gpu_render_scanline(GPU *gpu) {
+
 }
 

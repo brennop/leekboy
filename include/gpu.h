@@ -25,7 +25,7 @@ typedef struct {
   CPU *cpu;
   Mode mode;
 
-  uint8_t framebuffer[160][144];
+  int framebuffer[160 * 144];
   int cycles;
   int scanline;
 } GPU;

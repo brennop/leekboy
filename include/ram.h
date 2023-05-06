@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define RAM_DMA 0xFF46
+#define RAM_OAM 0xFE00
+
 typedef struct {
   uint8_t data[0x10000];
 } RAM;

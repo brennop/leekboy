@@ -3,8 +3,13 @@
 
 #include <stdint.h>
 
-void *frontend_init();
-void frontend_update(void *renderer, uint8_t framebuffer[160][144]);
-void frontend_draw_tiles(void *renderer, uint8_t *mem);
+typedef struct {
+  void *renderer;
+  void *texture;
+} Frontend;
+
+void frontend_init(Frontend *frontend);
+void frontend_update(Frontend *frontend, int framebuffer[160 * 144]);
+void frontend_draw_tiles(Frontend *frontend, uint8_t *mem);
 
 #endif // __FRONTEND_H__

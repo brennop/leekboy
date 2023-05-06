@@ -1,6 +1,14 @@
 #include "ram.h"
 
 void ram_set(RAM *ram, uint16_t address, uint8_t value) {
+  if (address == RAM_DMA) {
+    uint16_t src = value << 8;
+    for (int i = 0; i < 0xA0; i++) {
+      ram->data[RAM_OAM + i] = ram->data[src + i];
+    }
+    return;
+  }
+
   ram->data[address] = value;
 }
 

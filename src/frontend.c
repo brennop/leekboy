@@ -2,10 +2,10 @@
 
 #include <SDL2/SDL.h>
 
-void *frontend_init() {
+void frontend_init(Frontend *frontend) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
-    return NULL;
+    SDL_Quit();
   }
 
   SDL_Window *window =
@@ -15,16 +15,19 @@ void *frontend_init() {
   if (window == NULL) {
     printf("Window creation failed: %s\n", SDL_GetError());
     SDL_Quit();
-    return NULL;
   }
 
   SDL_Renderer *renderer = SDL_CreateRenderer(
       window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
-  return renderer;
+  SDL_Texture *texture = SDL_CreateTexture(
+      renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, 160, 144);
+
+  frontend->renderer = renderer;
+  frontend->texture = texture;
 }
 
-void frontend_update(void *renderer, uint8_t framebuffer[160][144]) {
+void frontend_update(Frontend *frontend, int framebuffer[160 * 144]) {
   // check quit
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
@@ -33,14 +36,27 @@ void frontend_update(void *renderer, uint8_t framebuffer[160][144]) {
       exit(0);
     }
   }
+
+  // draw
+  SDL_SetRenderDrawColor(frontend->renderer, 0, 0, 0, 255);
+  SDL_RenderClear(frontend->renderer);
+
+  // Rect
+  SDL_Rect rect;
+  rect.x = 0;
+  rect.y = 0;
+  rect.w = 160 * 2;
+  rect.h = 144 * 2;
+
+  SDL_UpdateTexture(frontend->texture, NULL, framebuffer,
+                    160 * sizeof(uint32_t));
+  SDL_RenderCopy(frontend->renderer, frontend->texture, NULL, &rect);
+  SDL_RenderPresent(frontend->renderer);
 }
 
-void frontend_draw_tiles(void *renderer, uint8_t *mem) {
-  // clear screen
-  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
-  SDL_RenderClear(renderer);
-
+void frontend_draw_tiles(Frontend *frontend, uint8_t *mem) {
+  int xOffset = 160 * 2 + 8;
+  int tilesPerRow = 16;
   for (int tile = 0; tile < 0x80; tile++) {
     for (int row = 0; row < 16; row += 2) {
       uint8_t left = mem[row + tile * 16];
@@ -50,11 +66,14 @@ void frontend_draw_tiles(void *renderer, uint8_t *mem) {
         uint8_t c = ((left >> col) << 1 | (right >> col)) & 0b11;
         uint8_t colors[] = {0xFF, 0xAA, 0x55, 0x00};
 
-        SDL_SetRenderDrawColor(renderer, colors[c], colors[c], colors[c], 255);
-        SDL_RenderDrawPoint(renderer, col + tile * 8, row / 2);
+        SDL_SetRenderDrawColor(frontend->renderer, colors[c], colors[c],
+                               colors[c], 255);
+        SDL_RenderDrawPoint(frontend->renderer,
+                            xOffset + col + tile % tilesPerRow * 8,
+                            tile / tilesPerRow * 8 + row / 2);
       }
     }
   }
 
-  SDL_RenderPresent(renderer);
+  SDL_RenderPresent(frontend->renderer);
 }
