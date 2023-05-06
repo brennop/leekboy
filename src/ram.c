@@ -1,4 +1,5 @@
 #include "ram.h"
+#include <stdio.h>
 
 void ram_set(RAM *ram, uint16_t address, uint8_t value) {
   if (address == RAM_DMA) {

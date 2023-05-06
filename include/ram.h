@@ -3,8 +3,11 @@
 
 #include <stdint.h>
 
-#define RAM_DMA 0xFF46
-#define RAM_OAM 0xFE00
+// TODO: move this and use MEM_
+#define RAM_DMA  0xFF46
+#define RAM_OAM  0xFE00
+#define RAM_IO   0xFF00
+#define RAM_JOYP 0xFF00
 
 typedef struct {
   uint8_t data[0x10000];

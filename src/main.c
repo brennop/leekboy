@@ -28,7 +28,7 @@ int main() {
 
   frontend_init(&frontend);
 
-  const int MAX_CYCLES = 70224;
+  const int MAX_CYCLES = 69905;
   while (1) {
     int cycles = 0;
 
@@ -37,7 +37,7 @@ int main() {
       gpu_step(&gpu, cycles);
     }
 
-    frontend_update(&frontend, gpu.framebuffer, cpu.ram->data + 0x8000);
+    frontend_update(&frontend, gpu.framebuffer, &cpu);
   }
 
   return 0;
