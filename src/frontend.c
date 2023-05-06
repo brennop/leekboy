@@ -27,7 +27,7 @@ void frontend_init(Frontend *frontend) {
   frontend->texture = texture;
 }
 
-void frontend_update(Frontend *frontend, int framebuffer[160 * 144]) {
+void frontend_update(Frontend *frontend, int framebuffer[160 * 144], uint8_t *mem) {
   // check quit
   SDL_Event event;
   while (SDL_PollEvent(&event)) {
@@ -51,13 +51,16 @@ void frontend_update(Frontend *frontend, int framebuffer[160 * 144]) {
   SDL_UpdateTexture(frontend->texture, NULL, framebuffer,
                     160 * sizeof(uint32_t));
   SDL_RenderCopy(frontend->renderer, frontend->texture, NULL, &rect);
+
+  frontend_draw_tiles(frontend, mem);
+
   SDL_RenderPresent(frontend->renderer);
 }
 
 void frontend_draw_tiles(Frontend *frontend, uint8_t *mem) {
   int xOffset = 160 * 2 + 8;
   int tilesPerRow = 16;
-  for (int tile = 0; tile < 0x80; tile++) {
+  for (int tile = 0; tile < 0x100; tile++) {
     for (int row = 0; row < 16; row += 2) {
       uint8_t left = mem[row + tile * 16];
       uint8_t right = mem[row + 1 + tile * 16];

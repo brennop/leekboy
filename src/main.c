@@ -37,8 +37,7 @@ int main() {
       gpu_step(&gpu, cycles);
     }
 
-    frontend_update(&frontend, gpu.framebuffer);
-    frontend_draw_tiles(&frontend, cpu.ram->data + 0x8000);
+    frontend_update(&frontend, gpu.framebuffer, cpu.ram->data + 0x8000);
   }
 
   return 0;

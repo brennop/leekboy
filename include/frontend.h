@@ -9,7 +9,7 @@ typedef struct {
 } Frontend;
 
 void frontend_init(Frontend *frontend);
-void frontend_update(Frontend *frontend, int framebuffer[160 * 144]);
+void frontend_update(Frontend *frontend, int framebuffer[160 * 144], uint8_t *mem);
 void frontend_draw_tiles(Frontend *frontend, uint8_t *mem);
 
 #endif // __FRONTEND_H__

@@ -53,7 +53,6 @@ void gpu_set_status(GPU *gpu) {
     } else if (gpu->scanline >= 204) {
       mode = 3;
       status |= 0x03;
-      /* req_int = status & 0x30; */ // FIXME: check why this was suggested
     } else {
       mode = 0;
       status &= ~0x03;
@@ -110,11 +109,11 @@ void gpu_step(GPU *gpu, int cycles) {
 void gpu_render_scanline(GPU *gpu) {
   uint8_t lcdc = ram_get(gpu->ram, LCDC);
 
-  if (lcdc & 0x01) {
+  if (lcdc & LCDC_BG_ENABLE) {
     gpu_render_tiles(gpu);
   }
 
-  if (lcdc & 0x02) {
+  if (lcdc & LCDC_OBJ_ENABLE) {
     gpu_render_sprites(gpu);
   }
 }
@@ -127,7 +126,7 @@ static void gpu_render_tiles(GPU *gpu) {
   uint8_t window_y = ram_get(gpu->ram, WY);
   uint8_t window_x = ram_get(gpu->ram, WX) - 7;
 
-  uint8_t window_enabled = lcdc & 0x20;
+  uint8_t window_enabled = lcdc & LCDC_WND_ENABLE;
 
   int ly = ram_get(gpu->ram, LY);
 
@@ -163,7 +162,7 @@ static void gpu_render_tiles(GPU *gpu) {
     uint16_t tile_col = x_pos >> 3;
 
     uint16_t tile_address = background_memory + tile_row + tile_col;
-    int16_t tile_num = is_unsigned ? (int8_t)ram_get(gpu->ram, tile_address)
+    int16_t tile_num = is_unsigned ? (uint8_t)ram_get(gpu->ram, tile_address)
                                    : (int16_t)ram_get(gpu->ram, tile_address);
 
     // if unsigned, +128 to tile number
