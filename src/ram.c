@@ -3,6 +3,10 @@
 #include "ram.h"
 
 uint8_t input_get(Input *input, RAM *ram) {
+  // this check is only for testing
+  // TODO: remove this check
+  if (input == NULL) return 0xFF;
+
   /** raw get to prevent infinite recursion */
   uint8_t joypad = ~ram->data[RAM_JOYP];
 

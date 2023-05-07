@@ -36,7 +36,7 @@ int main() {
 
   frontend_init(&frontend);
 
-  const int MAX_CYCLES = 69905;
+  const int MAX_CYCLES = 70224;
   while (1) {
     int cyclesThisUpdate = 0;
 

@@ -80,11 +80,10 @@ void frontend_update(Frontend *frontend, Emulator *emulator) {
   rect.w = 160 * 2;
   rect.h = 144 * 2;
 
-  SDL_UpdateTexture(frontend->texture, NULL, emulator->gpu->framebuffer,
-                    160 * sizeof(uint32_t));
+  SDL_UpdateTexture(frontend->texture, NULL, emulator->gpu->framebuffer, 160 * sizeof(uint32_t));
   SDL_RenderCopy(frontend->renderer, frontend->texture, NULL, &rect);
 
-  frontend_draw_tiles(frontend, emulator->cpu->ram->data + 0x8000);
+  /* frontend_draw_tiles(frontend, emulator->cpu->ram->data + 0x8000); */
 
   SDL_RenderPresent(frontend->renderer);
 }
