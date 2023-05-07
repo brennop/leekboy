@@ -419,6 +419,7 @@ int cpu_step(CPU *cpu) {
     CASE4_16(0x09) add_hl_r16(cpu, opcode); break;
     CASE4_16(0x03) set_r16(cpu, opcode, get_r16(cpu, opcode) + 1); break;
     CASE4_16(0x0B) set_r16(cpu, opcode, get_r16(cpu, opcode) - 1); break;
+    case 0x07: cpu->f = (cpu->a >> 7) << 4; cpu->a = (cpu->a << 1) | (CARRYF); break;
     case 0x08: ram_set_word(cpu->ram, nnn, cpu->sp); break;
     case 0x12: ram_set(cpu->ram, cpu->de, cpu->a); break;
     case 0x18: cpu->pc += (int8_t) nn; break;
