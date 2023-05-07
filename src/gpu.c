@@ -195,12 +195,13 @@ static void gpu_render_sprites(GPU *gpu) {
 
   bool big_sprites = lcdc & LCDC_OBJ_SIZE;
 
-  for (int sprite = 0; sprite < 40 * 4; sprite += 4) {
-    uint8_t y_pos = ram_get(gpu->ram, RAM_OAM + sprite) - 16;
-    uint8_t x_pos = ram_get(gpu->ram, RAM_OAM + sprite + 1) - 8;
+  for (int sprite = 0; sprite < 40; sprite ++) {
+    int index = sprite << 2;
+    uint8_t y_pos = ram_get(gpu->ram, RAM_OAM + index) - 16;
+    uint8_t x_pos = ram_get(gpu->ram, RAM_OAM + index + 1) - 8;
 
-    uint8_t tile_location = ram_get(gpu->ram, RAM_OAM + sprite + 2);
-    uint8_t attributes = ram_get(gpu->ram, RAM_OAM + sprite + 3);
+    uint8_t tile_location = ram_get(gpu->ram, RAM_OAM + index + 2);
+    uint8_t attributes = ram_get(gpu->ram, RAM_OAM + index + 3);
 
     bool y_flip = attributes & OBJ_Y_FLIP;
     bool x_flip = attributes & OBJ_X_FLIP;

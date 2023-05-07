@@ -17,6 +17,8 @@
 #define CASE4_16(x) case x: case x + 16: case x + 32: case x + 48:
 #define CASE8_8(x) case x: case x + 8: case x + 16: case x + 24: case x + 32: case x + 40: case x + 48: case x + 56:
 #define CASE_COND_JUMP(x) case x: case x + 8: case x + 16: case x + 24: if(get_flag(cpu, opcode))
+#define BIT (1 << ((opcode - 0x80) / 8))
+
 
 void cpu_memory_set(CPU *cpu, uint16_t address, uint8_t value) {
   ram_set(cpu->ram, address, value);
@@ -328,14 +330,13 @@ static void cpu_cb(CPU *cpu) {
       cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
       break;
     case 0x40 ... 0x7F: // BIT
-      set_carry = (value >> ((opcode - 0x40) / 8)) & 1;
-      cpu_set_flags(cpu, 0, 0, 1, set_carry);
+      cpu_set_flags(cpu, (value & BIT) == 0, 0, 1, CARRYF);
       break;
     case 0x80 ... 0xBF: // RES
-      value &= ~(1 << ((opcode - 0x80) / 8));
+      value &= ~BIT;
       break;
     case 0xC0 ... 0xFF: // SET
-      value |= 1 << ((opcode - 0xC0) / 8);
+      value |= BIT;
       break;
     default: printf("Unknown cb opcode: 0x%02X, %s at 0x%04X\n", opcode, instruction.mnemonic, cpu->pc - instruction.bytes); exit(1);
   }
@@ -401,7 +402,8 @@ int cpu_step(CPU *cpu) {
 
   Instruction instruction = instructions[opcode];
 
-  /* trace_02(cpu, instruction); */
+  if (cpu->cycles >= 35000000)
+    trace_02(cpu, instruction);
 
   cpu->pc += instruction.bytes;
 
@@ -425,7 +427,7 @@ int cpu_step(CPU *cpu) {
     case 0x18: cpu->pc += (int8_t) nn; break;
     case 0x1F: cpu->f = (cpu->a & 1) << 4; cpu->a = (cpu->a >> 1) | (carry << 7); break;
     case 0x0A: case 0x1A: cpu->a = ram_get(cpu->ram, get_r16(cpu, opcode)); break;
-    case 0x28: if(ZEROF) cpu->pc += (int8_t) nn; break;
+    case 0x28: if(ZEROF) { cpu->pc += (int8_t) nn; cycles += 4; } break;
     case 0x20: if(!(ZEROF)) { cpu->pc += (int8_t) nn; cycles += 4; } break;
     case 0x30: if(!(CARRYF)) cpu->pc += (int8_t) nn; break;
     case 0x22: ram_set(cpu->ram, cpu->hl++, cpu->a); break;

@@ -3,12 +3,9 @@
 #include <stdlib.h>
 
 #include "cpu.h"
+#include "emulator.h"
 #include "frontend.h"
 #include "gpu.h"
-#include "emulator.h"
-
-uint8_t ROM[0x200000];
-
 
 int main() {
   Frontend frontend;

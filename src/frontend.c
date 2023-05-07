@@ -3,6 +3,9 @@
 
 #include <SDL2/SDL.h>
 
+void frontend_draw_tiles(Frontend * frontend, uint8_t * mem);
+void frontend_draw_sprites(Frontend * frontend, uint8_t * mem);
+
 void frontend_init(Frontend *frontend) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
@@ -114,6 +117,9 @@ void frontend_update(Frontend *frontend, Emulator *emulator) {
                     160 * sizeof(uint32_t));
   SDL_RenderCopy(frontend->renderer, frontend->texture, NULL, &rect);
 
+  frontend_draw_tiles(frontend, emulator->cpu.ram->data + 0x8000);
+  frontend_draw_sprites(frontend, emulator->cpu.ram->data);
+
   SDL_RenderPresent(frontend->renderer);
 }
 
@@ -121,5 +127,54 @@ void frontend_run(Frontend *frontend, Emulator *emulator) {
   while (1) {
     frontend_update(frontend, emulator);
     emulator_step(emulator);
+  }
+}
+
+void frontend_draw_tiles(Frontend * frontend, uint8_t * mem) {
+  int xOffset = 160 * 2 + 8;
+  int tilesPerRow = 16;
+  for (int tile = 0; tile < 0x100; tile++) {
+    for (int row = 0; row < 16; row += 2) {
+      uint8_t left = mem[row + tile * 16];
+      uint8_t right = mem[row + 1 + tile * 16];
+
+      for (int col = 0; col < 8; col++) {
+        uint8_t c = ((left >> col) << 1 | (right >> col)) & 0b11;
+        uint8_t colors[] = {0xFF, 0xAA, 0x55, 0x00};
+
+        SDL_SetRenderDrawColor(frontend->renderer, colors[c], colors[c],
+                               colors[c], 255);
+        SDL_RenderDrawPoint(frontend->renderer,
+                            xOffset + col + tile % tilesPerRow * 8,
+                            tile / tilesPerRow * 8 + row / 2);
+      }
+    }
+  }
+
+  SDL_RenderPresent(frontend->renderer);
+}
+
+void frontend_draw_sprites(Frontend * frontend, uint8_t * mem) {
+  int xOffset = 160 * 2 + 8;
+  int yOffset = 144 * 2 + 8;
+  int spritesPerRow = 10;
+
+  for (int sprite = 0; sprite < 40; sprite++) {
+    uint8_t tile = mem[0xfe00 + sprite * 4 + 2];
+
+    for (int row = 0; row < 8; row += 2) {
+      uint8_t left = mem[row + tile * 16 + 0x8000];
+      uint8_t right = mem[row + 1 + tile * 16 + 0x8000];
+
+      for (int col = 0; col < 8; col++) {
+        uint8_t c = ((left >> col) << 1 | (right >> col)) & 0b11;
+        uint8_t colors[] = {0xFF, 0xAA, 0x55, 0x00};
+
+        SDL_SetRenderDrawColor(frontend->renderer, colors[c], colors[c],
+                               colors[c], 255);
+        SDL_RenderDrawPoint(frontend->renderer, xOffset + col + sprite % spritesPerRow * 8,
+                            yOffset + sprite / spritesPerRow * 8 + row / 2);
+      }
+    }
   }
 }
