@@ -59,6 +59,7 @@ typedef struct {
   uint8_t ime;
 
   int cycles;
+  uint8_t halted;
 } CPU;
 
 void cpu_init(CPU *cpu, uint8_t *rom);

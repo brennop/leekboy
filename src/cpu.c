@@ -32,6 +32,7 @@ void cpu_interrupt(CPU *cpu, uint8_t interrupt) {
   uint8_t interrupt_flag = ram_get(cpu->ram, IF);
   interrupt_flag |= interrupt;
   ram_set(cpu->ram, IF, interrupt_flag);
+  cpu->halted = 0;
 }
 
 void cpu_set_flags(CPU *cpu, uint8_t z, uint8_t n, uint8_t h, uint8_t c) {
@@ -369,6 +370,11 @@ int cpu_step(CPU *cpu) {
     }
   }
 
+  if (cpu->halted) {
+    cpu->cycles += 4;
+    return 4;
+  }
+
   // fetch the next instruction
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
 
@@ -407,7 +413,9 @@ int cpu_step(CPU *cpu) {
     case 0x2F: cpu->a = ~cpu->a; cpu_set_flags(cpu, ZEROF, 1, 1, CARRYF); break;
     case 0x32: ram_set(cpu->ram, cpu->hl--, cpu->a); break;
     case 0x38: if(CARRYF) cpu->pc += (int8_t) nn; break;
-    case 0x40 ... 0x7F: /* FIXME: HALT */ set_r8(cpu, (opcode - 0x40) / 8, get_r8(cpu, opcode)); break;
+    case 0x40 ... 0x75: set_r8(cpu, (opcode - 0x40) / 8, get_r8(cpu, opcode)); break;
+    case 0x77 ... 0x7F: set_r8(cpu, (opcode - 0x40) / 8, get_r8(cpu, opcode)); break;
+    case 0x76: cpu->halted = 1; break;
     case 0x80 ... 0x87: add_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0x88 ... 0x8F: adc_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0x90 ... 0x97: sub_a_r8(cpu, get_r8(cpu, opcode)); break;
