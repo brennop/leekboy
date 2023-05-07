@@ -3,10 +3,6 @@
 #include "ram.h"
 
 uint8_t input_get(Input *input, RAM *ram) {
-  // this check is only for testing
-  // TODO: remove this check
-  if (input == NULL) return 0xFF;
-
   /** raw get to prevent infinite recursion */
   uint8_t joypad = ~ram->data[RAM_JOYP];
 
@@ -23,7 +19,7 @@ uint8_t input_get(Input *input, RAM *ram) {
     if (input->start) joypad &= ~0x01;
   }
 
-  return joypad;
+  return 0xFF;
 }
 
 void ram_set(RAM *ram, uint16_t address, uint8_t value) {

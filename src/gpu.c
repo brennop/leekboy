@@ -1,7 +1,9 @@
 #include "gpu.h"
 #include "cpu.h"
 #include "ram.h"
+
 #include <stdio.h>
+#include <stdbool.h>
 
 const int colors[] = {0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000};
 
@@ -187,7 +189,67 @@ static void gpu_render_tiles(GPU *gpu) {
   }
 }
 
-static void gpu_render_sprites(GPU *gpu) {}
+static void gpu_render_sprites(GPU *gpu) {
+  uint8_t lcdc = ram_get(gpu->ram, LCDC);
+  uint8_t ly = ram_get(gpu->ram, LY);
+
+  bool big_sprites = lcdc & LCDC_OBJ_SIZE;
+
+  for (int sprite = 0; sprite < 40 * 4; sprite += 4) {
+    uint8_t y_pos = ram_get(gpu->ram, RAM_OAM + sprite) - 16;
+    uint8_t x_pos = ram_get(gpu->ram, RAM_OAM + sprite + 1) - 8;
+
+    uint8_t tile_location = ram_get(gpu->ram, RAM_OAM + sprite + 2);
+    uint8_t attributes = ram_get(gpu->ram, RAM_OAM + sprite + 3);
+
+    bool y_flip = attributes & OBJ_Y_FLIP;
+    bool x_flip = attributes & OBJ_X_FLIP;
+    int height = big_sprites ? 16 : 8;
+
+    // should we draw this sprite?
+    if (ly >= y_pos && ly < (y_pos + height)) {
+      int line = ly - y_pos;
+
+      if (y_flip) {
+        line -= height;
+        line *= -1;
+      }
+
+      line <<= 1; // same formula as gpu_render_tiles
+      uint16_t address = RAM_VRAM + (tile_location << 4) + line;
+      uint8_t data_right = ram_get(gpu->ram, address);
+      uint8_t data_left = ram_get(gpu->ram, address + 1);
+
+      for (int tile_pixel = 7; tile_pixel >= 0; tile_pixel--) {
+        int color_bit = tile_pixel;
+
+        if (x_flip) {
+          color_bit -= 7;
+          color_bit *= -1;
+        }
+
+        int color_num = ((data_left & (1 << color_bit)) >> color_bit) << 1 |
+                        (data_right & (1 << color_bit)) >> color_bit;
+
+        uint16_t palette = attributes & OBJ_PALETTE_NUMBER ? 0xFF49 : 0xFF48;
+        int color = get_color(gpu, color_num, ram_get(gpu->ram, palette));
+
+        // white is transparent for sprites
+        if (color == 0xFFFFFF) {
+          continue;
+        }
+
+        int x = x_pos + (7 - tile_pixel);
+
+        if (x < 0 || x >= 160) {
+          continue;
+        }
+
+        gpu->framebuffer[x + (ly * 160)] = color;
+      }
+    }
+  }
+}
 
 static inline int get_color(GPU *gpu, uint8_t value, uint16_t palette) {
   return colors[((palette >> ((value << 1) | 1)) & 0x01) << 1 |

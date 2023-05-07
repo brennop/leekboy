@@ -8,6 +8,7 @@
 #define RAM_OAM  0xFE00
 #define RAM_IO   0xFF00
 #define RAM_JOYP 0xFF00
+#define RAM_VRAM 0x8000
 
 typedef struct Input {
   uint8_t up;

@@ -33,6 +33,20 @@
 #define LCDC_OBJ_ENABLE       0x02
 #define LCDC_BG_ENABLE        0x01
 
+/**
+  * Sprite Attribute Table (OAM)
+  * Bit 7   - Sprite-to-BG Priority (0=OBJ Above BG, 1=OBJ Behind BG color 1-3)
+  * Bit 6   - Y flip              (0=Normal, 1=Vertically mirrored)
+  * Bit 5   - X flip              (0=Normal, 1=Horizontally mirrored)
+  * Bit 4   - Palette number      **Non CGB Mode Only** (0=OBP0, 1=OBP1)
+  * Bit 3   - Tile VRAM-Bank      **CGB Mode Only**     (0=Bank 0, 1=Bank 1)
+  * Bit 2-0 - Palette number      **CGB Mode Only**     (OBP0-7)
+  */
+#define OBJ_PALETTE_NUMBER 0x10
+#define OBJ_X_FLIP         0x20
+#define OBJ_Y_FLIP         0x40
+#define OBJ_PRIORITY       0x80
+
 // palette mem
 #define PAL_BGP 0xFF47
 
