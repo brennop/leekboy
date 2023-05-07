@@ -3,8 +3,8 @@
 
 #include <SDL2/SDL.h>
 
-void frontend_draw_tiles(Frontend * frontend, uint8_t * mem);
-void frontend_draw_sprites(Frontend * frontend, uint8_t * mem);
+void frontend_draw_tiles(Frontend *frontend, uint8_t *mem);
+void frontend_draw_sprites(Frontend *frontend, uint8_t *mem);
 
 void frontend_init(Frontend *frontend) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -21,8 +21,8 @@ void frontend_init(Frontend *frontend) {
     SDL_Quit();
   }
 
-  SDL_Renderer *renderer =
-      SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  SDL_Renderer *renderer = SDL_CreateRenderer(
+      window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
   SDL_Texture *texture = SDL_CreateTexture(
       renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, 160, 144);
@@ -117,8 +117,8 @@ void frontend_update(Frontend *frontend, Emulator *emulator) {
                     160 * sizeof(uint32_t));
   SDL_RenderCopy(frontend->renderer, frontend->texture, NULL, &rect);
 
-  frontend_draw_tiles(frontend, emulator->cpu.ram->data + 0x8000);
-  frontend_draw_sprites(frontend, emulator->cpu.ram->data);
+  /* frontend_draw_tiles(frontend, emulator->cpu.ram->data + 0x8000); */
+  /* frontend_draw_sprites(frontend, emulator->cpu.ram->data); */
 
   SDL_RenderPresent(frontend->renderer);
 }
@@ -130,7 +130,7 @@ void frontend_run(Frontend *frontend, Emulator *emulator) {
   }
 }
 
-void frontend_draw_tiles(Frontend * frontend, uint8_t * mem) {
+void frontend_draw_tiles(Frontend *frontend, uint8_t *mem) {
   int xOffset = 160 * 2 + 8;
   int tilesPerRow = 16;
   for (int tile = 0; tile < 0x100; tile++) {
@@ -154,7 +154,7 @@ void frontend_draw_tiles(Frontend * frontend, uint8_t * mem) {
   SDL_RenderPresent(frontend->renderer);
 }
 
-void frontend_draw_sprites(Frontend * frontend, uint8_t * mem) {
+void frontend_draw_sprites(Frontend *frontend, uint8_t *mem) {
   int xOffset = 160 * 2 + 8;
   int yOffset = 144 * 2 + 8;
   int spritesPerRow = 10;
@@ -172,7 +172,8 @@ void frontend_draw_sprites(Frontend * frontend, uint8_t * mem) {
 
         SDL_SetRenderDrawColor(frontend->renderer, colors[c], colors[c],
                                colors[c], 255);
-        SDL_RenderDrawPoint(frontend->renderer, xOffset + col + sprite % spritesPerRow * 8,
+        SDL_RenderDrawPoint(frontend->renderer,
+                            xOffset + col + sprite % spritesPerRow * 8,
                             yOffset + sprite / spritesPerRow * 8 + row / 2);
       }
     }

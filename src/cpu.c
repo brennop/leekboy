@@ -17,7 +17,7 @@
 #define CASE4_16(x) case x: case x + 16: case x + 32: case x + 48:
 #define CASE8_8(x) case x: case x + 8: case x + 16: case x + 24: case x + 32: case x + 40: case x + 48: case x + 56:
 #define CASE_COND_JUMP(x) case x: case x + 8: case x + 16: case x + 24: if(get_flag(cpu, opcode))
-#define BIT (1 << ((opcode - 0x80) / 8))
+#define BIT (1 << ((opcode & 0b00111000) >> 3))
 
 
 void cpu_memory_set(CPU *cpu, uint16_t address, uint8_t value) {
@@ -401,9 +401,6 @@ int cpu_step(CPU *cpu) {
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
 
   Instruction instruction = instructions[opcode];
-
-  if (cpu->cycles >= 35000000)
-    trace_02(cpu, instruction);
 
   cpu->pc += instruction.bytes;
 

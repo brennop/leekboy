@@ -4,25 +4,22 @@
 
 uint8_t input_get(Input *input, RAM *ram) {
   /** raw get to prevent infinite recursion */
-  uint8_t joypad = ~ram->data[RAM_JOYP];
+  uint8_t joypad = ~ram->data[RAM_JOYP] & 0x30;
 
-  if ((joypad & 0x10) == 0) {
-    if (input->right) joypad &= ~0x01;
-    if (input->left) joypad &= ~0x02;
-    if (input->up) joypad &= ~0x04;
-    if (input->down) joypad &= ~0x08;
+  if ((joypad & 0x10)) {
+    if (input->right) joypad |= 0x01;
+    if (input->left) joypad |= 0x02;
+    if (input->up) joypad |= 0x04;
+    if (input->down) joypad |= 0x08;
   }
-  if ((joypad & 0x20) == 0) {
-    if (input->a) joypad &= ~0x01;
-    if (input->b) joypad &= ~0x02;
-    if (input->select) joypad &= ~0x04;
-    if (input->start) joypad &= ~0x08;
+  if ((joypad & 0x20)) {
+    if (input->a) joypad |= 0x01;
+    if (input->b) joypad |= 0x02;
+    if (input->select) joypad |= 0x04;
+    if (input->start) joypad |= 0x08;
   }
 
-  if (joypad == 0xef) return 0xdf;
-  if (joypad == 0xdf) return 0xef;
-
-  return joypad;
+  return ~joypad & 0x3F;
 }
 
 void ram_set(RAM *ram, uint16_t address, uint8_t value) {
