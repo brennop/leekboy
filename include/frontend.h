@@ -10,6 +10,6 @@ typedef struct {
 } Frontend;
 
 void frontend_init(Frontend *frontend);
-void frontend_update(Frontend *frontend, Emulator *emulator);
+void frontend_run(Frontend *frontend, Emulator *emulator);
 
 #endif // __FRONTEND_H__

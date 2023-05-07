@@ -392,12 +392,7 @@ int cpu_step(CPU *cpu) {
       } else if (interrupt & INT_JOYPAD) {
         cpu->pc = 0x60;
         cpu->ram->data[IF] &= ~INT_JOYPAD;
-      } else {
-        printf("Unknown interrupt: 0x%02X\n", interrupt);
-        exit(1);
-      }
-
-      /* return 0; */
+      } 
     }
   }
 

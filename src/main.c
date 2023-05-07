@@ -9,45 +9,15 @@
 
 uint8_t ROM[0x200000];
 
-uint8_t *load_rom(char *filename) {
-  FILE *f = fopen(filename, "rb");
-  fread(ROM, 1, 0x200000, f);
-  fclose(f);
-
-  return ROM;
-}
 
 int main() {
-  CPU cpu;
-  GPU gpu;
   Frontend frontend;
-
-  // TODO: move to emulator_init
   Emulator emulator;
-  emulator.cpu = &cpu;
-  emulator.gpu = &gpu;
-
-  uint8_t *rom = load_rom("tetris.gb");
-
-  cpu_init(&cpu, rom);
-  gpu_init(&gpu, &cpu, cpu.ram);
-
-  cpu.ram->input = &emulator.input;
 
   frontend_init(&frontend);
+  emulator_init(&emulator, "tetris.gb");
 
-  const int MAX_CYCLES = 70224;
-  while (1) {
-    int cyclesThisUpdate = 0;
-
-    while (cyclesThisUpdate < MAX_CYCLES) {
-      int cycles = cpu_step(&cpu);
-      cyclesThisUpdate += cycles;
-      gpu_step(&gpu, cycles);
-    }
-
-    frontend_update(&frontend, &emulator);
-  }
+  frontend_run(&frontend, &emulator);
 
   return 0;
 }
