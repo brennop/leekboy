@@ -11,6 +11,5 @@ typedef struct {
 
 void frontend_init(Frontend *frontend);
 void frontend_update(Frontend *frontend, Emulator *emulator);
-void frontend_draw_tiles(Frontend *frontend, uint8_t *mem);
 
 #endif // __FRONTEND_H__

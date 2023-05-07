@@ -6,6 +6,15 @@ green_color = "\033[1;32m"
 expected, actual = sys.argv[1], sys.argv[2]
 
 with open(expected) as f, open(actual) as g:
+    # skip lines that do not contain the trace
+    for line in f:
+        if line.startswith("A"):
+            break
+
+    for line in g:
+        if line.startswith("A"):
+            break
+
     prev = ""
     for line, (expected_line, actual_line) in enumerate(zip(f, g)):
         exp_data = expected_line.lower().split()

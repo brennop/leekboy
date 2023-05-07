@@ -38,10 +38,11 @@ int main() {
 
   const int MAX_CYCLES = 69905;
   while (1) {
-    int cycles = 0;
+    int cyclesThisUpdate = 0;
 
-    while (cycles < MAX_CYCLES) {
-      cycles += cpu_step(&cpu);
+    while (cyclesThisUpdate < MAX_CYCLES) {
+      int cycles = cpu_step(&cpu);
+      cyclesThisUpdate += cycles;
       gpu_step(&gpu, cycles);
     }
 

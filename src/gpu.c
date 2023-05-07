@@ -87,6 +87,7 @@ void gpu_step(GPU *gpu, int cycles) {
 
   gpu->scanline -= cycles;
 
+  /* printf("scanline: %d\n", gpu->scanline); */
   if (gpu->scanline <= 0) {
     // move to next scanline
     gpu->ram->data[LY]++;

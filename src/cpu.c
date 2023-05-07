@@ -401,7 +401,7 @@ int cpu_step(CPU *cpu) {
 
   Instruction instruction = instructions[opcode];
 
-  /* trace_02(cpu, instruction); */
+  trace_02(cpu, instruction);
 
   cpu->pc += instruction.bytes;
 

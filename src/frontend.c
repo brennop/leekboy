@@ -3,6 +3,8 @@
 
 #include <SDL2/SDL.h>
 
+void frontend_draw_tiles(Frontend *frontend, uint8_t *mem);
+
 void frontend_init(Frontend *frontend) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
