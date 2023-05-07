@@ -17,8 +17,8 @@
 #define CASE4_16(x) case x: case x + 16: case x + 32: case x + 48:
 #define CASE8_8(x) case x: case x + 8: case x + 16: case x + 24: case x + 32: case x + 40: case x + 48: case x + 56:
 #define CASE_COND_JUMP(x) case x: case x + 8: case x + 16: case x + 24: if(get_flag(cpu, opcode))
-#define BIT (1 << ((opcode & 0b00111000) >> 3))
 
+#define BIT (1 << ((opcode & 0b00111000) >> 3))
 
 void cpu_memory_set(CPU *cpu, uint16_t address, uint8_t value) {
   ram_set(cpu->ram, address, value);
@@ -232,33 +232,6 @@ static inline void add_sp(CPU *cpu, uint8_t value, uint16_t *target) {
   *target = result;
 }
 
-static inline void update_timer(CPU *cpu) {
-  // update DIV
-  if (cpu->cycles % 64 == 0) {
-    ram_set(cpu->ram, MEM_DIV, ram_get(cpu->ram, MEM_DIV) + 1);
-  }
-
-  // update TIMA
-  if (ram_get(cpu->ram, MEM_TAC) & 0x04) {
-    uint16_t freqs[] = { 1024, 16, 64, 256 };
-    uint8_t freq = ram_get(cpu->ram, MEM_TAC) & 0x03;
-    uint16_t c = freqs[freq];
-
-    if (cpu->cycles % c == 0) {
-      uint8_t tima = ram_get(cpu->ram, MEM_TIMA);
-      tima++;
-
-      if (tima == 0) {
-        ram_set(cpu->ram, MEM_TIMA, ram_get(cpu->ram, MEM_TMA));
-        cpu_interrupt(cpu, INT_TIMER);
-      } else {
-        ram_set(cpu->ram, MEM_TIMA, tima);
-      }
-    }
-  }
-
-}
-
 void cpu_init(CPU *cpu, uint8_t *rom) {
   // allocate ram for the cpu
   cpu->ram = malloc(0x10000);
@@ -296,6 +269,7 @@ void cpu_init(CPU *cpu, uint8_t *rom) {
   cpu->ram->data[0xFF46] = 0xFF;
   cpu->ram->data[0xFF47] = 0xFC;
 }
+
 
 static void cpu_cb(CPU *cpu) {
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
@@ -366,8 +340,6 @@ extern void trace_02(CPU *cpu, Instruction ins) {
 }
 
 int cpu_step(CPU *cpu) {
-  update_timer(cpu);
-
   // check interrupts
   if (cpu->ime) {
     uint8_t interrupt = cpu->ram->data[IE] & cpu->ram->data[IF];
