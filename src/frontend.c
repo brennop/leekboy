@@ -6,6 +6,8 @@
 void frontend_draw_tiles(Frontend *frontend, uint8_t *mem);
 void frontend_draw_sprites(Frontend *frontend, uint8_t *mem);
 
+#define SCALE 4
+
 void frontend_init(Frontend *frontend) {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
@@ -14,7 +16,7 @@ void frontend_init(Frontend *frontend) {
 
   SDL_Window *window =
       SDL_CreateWindow("leekboy", SDL_WINDOWPOS_CENTERED,
-                       SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
+                       SDL_WINDOWPOS_CENTERED, 160 * SCALE, 144 * SCALE, SDL_WINDOW_SHOWN);
 
   if (window == NULL) {
     printf("Window creation failed: %s\n", SDL_GetError());
@@ -110,8 +112,8 @@ void frontend_update(Frontend *frontend, Emulator *emulator) {
   SDL_Rect rect;
   rect.x = 0;
   rect.y = 0;
-  rect.w = 160 * 2;
-  rect.h = 144 * 2;
+  rect.w = 160 * SCALE;
+  rect.h = 144 * SCALE;
 
   SDL_UpdateTexture(frontend->texture, NULL, emulator->gpu.framebuffer,
                     160 * sizeof(uint32_t));
