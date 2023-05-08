@@ -23,6 +23,11 @@ uint8_t input_get(Input *input, RAM *ram) {
 }
 
 void ram_set(RAM *ram, uint16_t address, uint8_t value) {
+  if (address <= 0x7FFF) {
+    // TODO: ROM bank switching
+    return;
+  }
+
   if (address == RAM_DMA) {
     uint16_t src = value << 8;
     for (int i = 0; i < 0xA0; i++) {
