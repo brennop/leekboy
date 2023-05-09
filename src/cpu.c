@@ -380,6 +380,8 @@ int cpu_step(CPU *cpu) {
 
   Instruction instruction = instructions[opcode];
 
+  trace_02(cpu, instruction);
+
   cpu->pc += instruction.bytes;
 
   uint8_t nn = NN;
@@ -444,7 +446,7 @@ int cpu_step(CPU *cpu) {
     case 0xE8: add_sp(cpu, nn, &cpu->sp); break;
     case 0xE9: cpu->pc = cpu->hl; break;
     case 0xEE: xor_a_r8(cpu, nn); break;
-    case 0xF0: cpu->a = vram_get(cpu->ram, 0xFF00 + nn); break;
+    case 0xF0: cpu->a = ram_get(cpu->ram, 0xFF00 + nn); break;
     case 0xF1: cpu->af = cpu_pop_stack(cpu) & 0xFFF0; break;
     case 0xF3: case 0xFB: cpu->ime = opcode == 0xFB; break;
     case 0xF6: or_a_r8(cpu, nn); break;

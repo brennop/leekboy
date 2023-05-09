@@ -52,11 +52,3 @@ uint8_t ram_get(RAM *ram, uint16_t address) {
   return ram->data[address];
 }
 
-// only for testing
-uint8_t vram_get(RAM *ram, uint16_t address) {
-#ifdef ROM_TEST
-  if (address == 0xFF44) return 0x90;
-#endif
-  return ram_get(ram, address);
-}
-
