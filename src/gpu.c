@@ -2,8 +2,8 @@
 #include "cpu.h"
 #include "ram.h"
 
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 const int colors[] = {0xFFFFFF, 0xAAAAAA, 0x555555, 0x000000};
 
@@ -47,67 +47,71 @@ void gpu_set_mode(GPU *gpu, Mode mode) {
   uint8_t stat = ram_get(gpu->ram, STAT);
 
   switch (mode) {
-    case MODE_OAM:
-      if (stat & STAT_OAM_INT) cpu_interrupt(gpu->cpu, INT_LCDSTAT);
-      break;
-    case MODE_VRAM:
-      break;
-    case MODE_HBLANK:
-      if (stat & STAT_HBL_INT) cpu_interrupt(gpu->cpu, INT_LCDSTAT);
-      break;
-    case MODE_VBLANK:
-      cpu_interrupt(gpu->cpu, INT_VBLANK);
-      if (stat & STAT_VBL_INT) cpu_interrupt(gpu->cpu, INT_LCDSTAT);
-      break;
+  case MODE_OAM:
+    if (stat & STAT_OAM_INT)
+      cpu_interrupt(gpu->cpu, INT_LCDSTAT);
+    break;
+  case MODE_VRAM:
+    break;
+  case MODE_HBLANK:
+    if (stat & STAT_HBL_INT)
+      cpu_interrupt(gpu->cpu, INT_LCDSTAT);
+    break;
+  case MODE_VBLANK:
+    cpu_interrupt(gpu->cpu, INT_VBLANK);
+    if (stat & STAT_VBL_INT)
+      cpu_interrupt(gpu->cpu, INT_LCDSTAT);
+    break;
   }
 
   gpu->mode = mode;
 }
 
 void gpu_step(GPU *gpu, int cycles) {
-  if (!gpu_is_lcd_enabled(gpu)) return;
+  if (!gpu_is_lcd_enabled(gpu))
+    return;
 
   gpu->cycles += cycles;
 
   uint8_t ly = ram_get(gpu->ram, LY);
 
-  switch(gpu->mode) {
-    case MODE_OAM:
-      if (gpu->cycles >= 80) {
-        gpu->cycles -= 80;
-        gpu_set_mode(gpu, MODE_VRAM);
-      }
-      break;
-    case MODE_VRAM:
-      if (gpu->cycles >= 172) {
-        gpu->cycles -= 172;
-        gpu_set_mode(gpu, MODE_HBLANK);
-        gpu_render_scanline(gpu);
-      }
-      break;
-    case MODE_HBLANK:
-      if (gpu->cycles >= 204) {
-        gpu->cycles -= 204;
-        ram_set(gpu->ram, LY, ly + 1);
+  switch (gpu->mode) {
+  case MODE_OAM:
+    if (gpu->cycles >= 80) {
+      gpu->cycles -= 80;
+      gpu_set_mode(gpu, MODE_VRAM);
+    }
+    break;
+  case MODE_VRAM:
+    if (gpu->cycles >= 172) {
+      gpu->cycles -= 172;
+      gpu_set_mode(gpu, MODE_HBLANK);
+      gpu_render_scanline(gpu);
+    }
+    break;
+  case MODE_HBLANK:
+    if (gpu->cycles >= 204) {
+      gpu->cycles -= 204;
+      ram_set(gpu->ram, LY, ly + 1);
 
-        if (ly == 143) {
-          gpu_set_mode(gpu, MODE_VBLANK);
-        } else {
-          gpu_set_mode(gpu, MODE_OAM);
-        }
+      if (ly == 143) {
+        gpu_set_mode(gpu, MODE_VBLANK);
+      } else {
+        gpu_set_mode(gpu, MODE_OAM);
       }
-      break;
-    case MODE_VBLANK:
-      if (gpu->cycles >= 456) {
-        gpu->cycles -= 456;
-        ram_set(gpu->ram, LY, ly + 1);
+    }
+    break;
+  case MODE_VBLANK:
+    if (gpu->cycles >= 456) {
+      gpu->cycles -= 456;
+      ram_set(gpu->ram, LY, ly + 1);
 
-        if (ly == 153) {
-          gpu_set_mode(gpu, MODE_OAM);
-          ram_set(gpu->ram, LY, 0);
-        }
+      if (ly == 153) {
+        gpu_set_mode(gpu, MODE_OAM);
+        ram_set(gpu->ram, LY, 0);
       }
-      break;
+    }
+    break;
   }
 }
 
@@ -168,11 +172,11 @@ static void gpu_render_tiles(GPU *gpu) {
 
     uint16_t tile_address = background_memory + tile_row + tile_col;
     int16_t tile_num = is_unsigned ? (uint8_t)ram_get(gpu->ram, tile_address)
-                                   : (int16_t)ram_get(gpu->ram, tile_address);
+                                   : (int8_t)ram_get(gpu->ram, tile_address);
 
-    // if unsigned, +128 to tile number
+    // if not unsigned, +128 to tile number
     uint16_t tile_location =
-        tile_data + ((is_unsigned << 3) ^ 128) + (tile_num << 4);
+        tile_data + (is_unsigned ? tile_num : tile_num + 128) * 16;
 
     uint8_t line = (y_pos % 8) << 1;
     uint8_t data_right = ram_get(gpu->ram, tile_location + line);
@@ -197,7 +201,7 @@ static void gpu_render_sprites(GPU *gpu) {
 
   bool big_sprites = lcdc & LCDC_OBJ_SIZE;
 
-  for (int sprite = 0; sprite < 40; sprite ++) {
+  for (int sprite = 0; sprite < 40; sprite++) {
     int index = sprite << 2;
     uint8_t y_pos = ram_get(gpu->ram, RAM_OAM + index) - 16;
     uint8_t x_pos = ram_get(gpu->ram, RAM_OAM + index + 1) - 8;

@@ -19,7 +19,7 @@ uint8_t input_get(Input *input, RAM *ram) {
     if (input->start) joypad |= 0x08;
   }
 
-  return ~joypad & 0x3F;
+  return (~joypad & 0x3F) | 0xC0;
 }
 
 void ram_set(RAM *ram, uint16_t address, uint8_t value) {
