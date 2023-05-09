@@ -25,87 +25,89 @@ static inline uint8_t gpu_is_lcd_enabled(GPU *gpu) {
   return ram_get(gpu->ram, LCDC) & 0x80;
 }
 
-void gpu_set_status(GPU *gpu) {
-  uint8_t status = ram_get(gpu->ram, STAT);
+void gpu_update_stat(GPU *gpu, Mode mode) {
+  uint8_t stat = ram_get(gpu->ram, STAT) & 0xFC;
+  uint8_t ly = ram_get(gpu->ram, LY);
+  uint8_t lyc = ram_get(gpu->ram, LYC);
 
-  if (!gpu_is_lcd_enabled(gpu)) {
-    gpu->scanline = 456;
-    ram_set(gpu->ram, LY, 0);
-    status = (status & 0xFC) | 0x01;
-    ram_set(gpu->ram, STAT, status);
-    return;
-  }
-
-  int current_line = vram_get(gpu->ram, LY);
-  int current_mode = status & 0x03;
-  uint8_t mode = 0;
-  uint8_t req_int = 0;
-
-  if (current_line >= 144) { /* V-Blank */
-    mode = 1;
-    status |= 0x01;
-    status &= ~0x02;
-    req_int = status & 0x10;
-  } else {
-    if (gpu->scanline >= 376) {
-      mode = 2;
-      status |= 0x02;
-      status &= ~0x01;
-      req_int = status & 0x20;
-    } else if (gpu->scanline >= 204) {
-      mode = 3;
-      status |= 0x03;
-    } else {
-      mode = 0;
-      status &= ~0x03;
-      req_int = status & 0x08;
-    }
-
-    // mode changed, request interrupt
-    if (req_int && (mode != current_mode)) {
+  if (ly == lyc) {
+    stat |= STAT_LYC_LY;
+    if (stat & STAT_LYC_INT) {
       cpu_interrupt(gpu->cpu, INT_LCDSTAT);
     }
-
-    // check coincidence
-    if (vram_get(gpu->ram, LY) == ram_get(gpu->ram, LYC)) {
-      status |= 0x04;
-      if (status & 0x40) {
-        cpu_interrupt(gpu->cpu, INT_LCDSTAT);
-      }
-    } else {
-      status &= ~0x04;
-    }
-
-    ram_set(gpu->ram, STAT, status);
+  } else {
+    stat &= ~STAT_LYC_LY;
   }
+
+  ram_set(gpu->ram, STAT, stat | mode);
+}
+
+void gpu_set_mode(GPU *gpu, Mode mode) {
+  gpu_update_stat(gpu, mode);
+  uint8_t stat = ram_get(gpu->ram, STAT);
+
+  switch (mode) {
+    case MODE_OAM:
+      if (stat & STAT_OAM_INT) cpu_interrupt(gpu->cpu, INT_LCDSTAT);
+      break;
+    case MODE_VRAM:
+      break;
+    case MODE_HBLANK:
+      if (stat & STAT_HBL_INT) cpu_interrupt(gpu->cpu, INT_LCDSTAT);
+      break;
+    case MODE_VBLANK:
+      cpu_interrupt(gpu->cpu, INT_VBLANK);
+      if (stat & STAT_VBL_INT) cpu_interrupt(gpu->cpu, INT_LCDSTAT);
+      break;
+  }
+
+  gpu->mode = mode;
 }
 
 void gpu_step(GPU *gpu, int cycles) {
-  gpu_set_status(gpu);
+  if (!gpu_is_lcd_enabled(gpu)) return;
 
-  if (!gpu_is_lcd_enabled(gpu)) {
-    return;
-  }
+  gpu->cycles += cycles;
 
-  gpu->scanline -= cycles;
+  uint8_t ly = ram_get(gpu->ram, LY);
 
-  /* printf("scanline: %d\n", gpu->scanline); */
-  if (gpu->scanline <= 0) {
-    // move to next scanline
-    gpu->ram->data[LY]++;
+  switch(gpu->mode) {
+    case MODE_OAM:
+      if (gpu->cycles >= 80) {
+        gpu->cycles -= 80;
+        gpu_set_mode(gpu, MODE_VRAM);
+      }
+      break;
+    case MODE_VRAM:
+      if (gpu->cycles >= 172) {
+        gpu->cycles -= 172;
+        gpu_set_mode(gpu, MODE_HBLANK);
+        gpu_render_scanline(gpu);
+      }
+      break;
+    case MODE_HBLANK:
+      if (gpu->cycles >= 204) {
+        gpu->cycles -= 204;
+        ram_set(gpu->ram, LY, ly + 1);
 
-    int current_line = vram_get(gpu->ram, LY);
+        if (ly == 143) {
+          gpu_set_mode(gpu, MODE_VBLANK);
+        } else {
+          gpu_set_mode(gpu, MODE_OAM);
+        }
+      }
+      break;
+    case MODE_VBLANK:
+      if (gpu->cycles >= 456) {
+        gpu->cycles -= 456;
+        ram_set(gpu->ram, LY, ly + 1);
 
-    gpu->scanline += 456;
-
-    if (current_line == 144) {
-      // request vblank interrupt
-      cpu_interrupt(gpu->cpu, INT_VBLANK);
-    } else if (current_line > 153) {
-      gpu->ram->data[LY] = 0;
-    } else if (current_line < 144) {
-      gpu_render_scanline(gpu);
-    }
+        if (ly == 153) {
+          gpu_set_mode(gpu, MODE_OAM);
+          ram_set(gpu->ram, LY, 0);
+        }
+      }
+      break;
   }
 }
 

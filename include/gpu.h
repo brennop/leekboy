@@ -47,6 +47,26 @@
 #define OBJ_Y_FLIP         0x40
 #define OBJ_PRIORITY       0x80
 
+/**
+ * STAT
+ * Bit 6 - LYC=LY Coincidence Interrupt (1=Enable) (Read/Write)
+ * Bit 5 - Mode 2 OAM Interrupt         (1=Enable) (Read/Write)
+ * Bit 4 - Mode 1 V-Blank Interrupt     (1=Enable) (Read/Write)
+ * Bit 3 - Mode 0 H-Blank Interrupt     (1=Enable) (Read/Write)
+ * Bit 2 - Coincidence Flag  (0:LYC<>LY, 1:LYC=LY) (Read Only)
+ * Bit 1-0 - Mode Flag       (Mode 0-3, see below) (Read Only)
+ *          0: During H-Blank
+ *          1: During V-Blank
+ *          2: During Searching OAM-RAM
+ *          3: During Transfering Data to LCD Driver
+ */
+#define STAT_LYC_INT 0x40
+#define STAT_OAM_INT 0x20
+#define STAT_VBL_INT 0x10
+#define STAT_HBL_INT 0x08
+#define STAT_LYC_LY  0x04
+#define STAT_MODE    0x03
+
 // palette mem
 #define PAL_BGP 0xFF47
 
