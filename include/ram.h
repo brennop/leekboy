@@ -21,12 +21,34 @@ typedef struct Input {
   uint8_t select;
 } Input;
 
+typedef enum Mapper {
+  MAP_NONE,
+  MAP_MBC1,
+} Mapper;
+
+typedef enum {
+  BANK_ROM,
+  BANK_RAM,
+} BankMode;
+
+#define RAM_BANK_SIZE 0x2000
+
 // TODO: move input out of here
 typedef struct {
-  uint8_t data[0x10000];
   Input *input;
+
+  Mapper mapper;
+  uint8_t rom_bank;
+  uint8_t ram_bank;
+  uint8_t ram_enable;
+  BankMode bank_mode;
+
+  uint8_t data[0x10000];
+  uint8_t banks[0x8000];
+  uint8_t *rom;
 } RAM;
 
+void ram_init(RAM *ram, Input *input, uint8_t *rom);
 void ram_set(RAM *ram, uint16_t address, uint8_t value);
 void ram_set_word(RAM *ram, uint16_t address, uint16_t value);
 uint8_t ram_get(RAM *ram, uint16_t address);

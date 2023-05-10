@@ -18,10 +18,9 @@ static void *load_rom(uint8_t *rom, char *filename) {
 void emulator_init(Emulator *emulator, char *filename) {
   load_rom(emulator->rom, filename);
 
-  cpu_init(&emulator->cpu, emulator->rom);
+  ram_init(&emulator->ram, &emulator->input, emulator->rom);
+  cpu_init(&emulator->cpu, &emulator->ram);
   gpu_init(&emulator->gpu, &emulator->cpu, emulator->cpu.ram);
-
-  emulator->cpu.ram->input = &emulator->input;
 }
 
 void emulator_step(Emulator *emulator) {
@@ -37,11 +36,14 @@ void emulator_step(Emulator *emulator) {
 
 void emulator_update_timers(Emulator *emulator, int cycles) {
   uint8_t timer_attrs = ram_get(emulator->cpu.ram, MEM_TAC);
+  uint8_t div = ram_get(emulator->cpu.ram, MEM_DIV);
+  uint8_t tima = ram_get(emulator->cpu.ram, MEM_TIMA);
+  uint8_t tma = ram_get(emulator->cpu.ram, MEM_TMA);
   
   emulator->div += cycles;
   if (emulator->div >= 256) {
     emulator->div = 0;
-    emulator->cpu.ram->data[MEM_DIV]++;
+    ram_set(emulator->cpu.ram, MEM_DIV, div + 1);
   }
 
   if (timer_attrs & 0x04) {
@@ -52,11 +54,11 @@ void emulator_update_timers(Emulator *emulator, int cycles) {
 
     if (emulator->tima >= clock_speed) {
       emulator->tima = 0;
-      emulator->cpu.ram->data[MEM_TIMA]++;
+      ram_set(emulator->cpu.ram, MEM_TIMA, tima + 1);
 
       // if TIMA overflows, reset to TMA and trigger interrupt
-      if (emulator->cpu.ram->data[MEM_TIMA] == 0) {
-        emulator->cpu.ram->data[MEM_TIMA] = emulator->cpu.ram->data[MEM_TMA];
+      if (tima == 0xFF) {
+        ram_set(emulator->cpu.ram, MEM_TIMA, tma);
         cpu_interrupt(&emulator->cpu, INT_TIMER);
       }
     }

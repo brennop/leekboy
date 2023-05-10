@@ -4,7 +4,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #define ZEROF (cpu->f & 0x80) == 0x80
 #define SUBF (cpu->f & 0x40) == 0x40
@@ -233,12 +232,8 @@ static inline void add_sp(CPU *cpu, uint8_t value, uint16_t *target) {
   *target = result;
 }
 
-void cpu_init(CPU *cpu, uint8_t *rom) {
-  // allocate ram for the cpu
-  cpu->ram = malloc(0x10000);
-
-  // copy the rom into the cpu
-  memcpy(cpu->ram, rom, 0x8000);
+void cpu_init(CPU *cpu, RAM *ram) {
+  cpu->ram = ram;
 
   // set the program counter to entry point
   cpu->pc = 0x100;
@@ -379,8 +374,6 @@ int cpu_step(CPU *cpu) {
   uint8_t opcode = ram_get(cpu->ram, cpu->pc);
 
   Instruction instruction = instructions[opcode];
-
-  trace_02(cpu, instruction);
 
   cpu->pc += instruction.bytes;
 

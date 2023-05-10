@@ -11,6 +11,8 @@
 typedef struct {
   CPU cpu;
   GPU gpu;
+  RAM ram;
+
   Input input;
   uint8_t rom[0x200000];
 

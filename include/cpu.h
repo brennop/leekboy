@@ -62,7 +62,7 @@ typedef struct {
   uint8_t halted;
 } CPU;
 
-void cpu_init(CPU *cpu, uint8_t *rom);
+void cpu_init(CPU *cpu, RAM *ram);
 int cpu_step(CPU *cpu);
 void cpu_interrupt(CPU *cpu, uint8_t interrupt);
 
