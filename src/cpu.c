@@ -279,6 +279,12 @@ static void cpu_cb(CPU *cpu) {
   uint8_t set_carry = 0;
 
   switch(opcode) {
+    case 0x10 ... 0x17: // RL
+      set_carry = value >> 7;
+      value <<= 1;
+      if(carry) value |= 1;
+      cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
+      break;
     case 0x18 ... 0x1F: // RR
       set_carry = value & 1;
       value >>= 1;
@@ -386,6 +392,7 @@ int cpu_step(CPU *cpu) {
   switch(opcode) {
     case 0x00: /* NOP */ break;
     CASE4_16(0x01) set_r16(cpu, opcode, nnn); break;
+    case 0x02: ram_set(cpu->ram, cpu->bc, cpu->a); break;
     CASE8_8(0x04) inc_r8(cpu, (opcode - 0x04) / 8); break;
     CASE8_8(0x05) dec_r8(cpu, (opcode - 0x05) / 8); break;
     CASE8_8(0x06) set_r8(cpu, (opcode - 0x06) / 8, nn); break;
@@ -396,11 +403,14 @@ int cpu_step(CPU *cpu) {
     case 0x08: ram_set_word(cpu->ram, nnn, cpu->sp); break;
     case 0x12: ram_set(cpu->ram, cpu->de, cpu->a); break;
     case 0x18: cpu->pc += (int8_t) nn; break;
+    case 0x17: cpu->f = (cpu->a >> 7) << 4; cpu->a = (cpu->a << 1) | (cpu->f >> 4); break;
+    case 0x0F: cpu->f = (cpu->a & 1) << 4; cpu->a >>= 1; break;
     case 0x1F: cpu->f = (cpu->a & 1) << 4; cpu->a = (cpu->a >> 1) | (carry << 7); break;
     case 0x0A: case 0x1A: cpu->a = ram_get(cpu->ram, get_r16(cpu, opcode)); break;
     case 0x28: if(ZEROF) { cpu->pc += (int8_t) nn; cycles += 4; } break;
     case 0x20: if(!(ZEROF)) { cpu->pc += (int8_t) nn; cycles += 4; } break;
     case 0x30: if(!(CARRYF)) cpu->pc += (int8_t) nn; break;
+    case 0x3F: cpu_set_flags(cpu, ZEROF, 0, 0, !(CARRYF)); break;
     case 0x22: ram_set(cpu->ram, cpu->hl++, cpu->a); break;
     case 0x27: daa(cpu); break;
     case 0x2A: cpu->a = ram_get(cpu->ram, cpu->hl++); break;
@@ -441,6 +451,7 @@ int cpu_step(CPU *cpu) {
     case 0xEE: xor_a_r8(cpu, nn); break;
     case 0xF0: cpu->a = ram_get(cpu->ram, 0xFF00 + nn); break;
     case 0xF1: cpu->af = cpu_pop_stack(cpu) & 0xFFF0; break;
+    case 0xF2: cpu->a = ram_get(cpu->ram, 0xFF00 + cpu->c); break;
     case 0xF3: case 0xFB: cpu->ime = opcode == 0xFB; break;
     case 0xF6: or_a_r8(cpu, nn); break;
     case 0xF8: add_sp(cpu, nn, &cpu->hl); break;
