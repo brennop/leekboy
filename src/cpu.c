@@ -279,6 +279,12 @@ static void cpu_cb(CPU *cpu) {
   uint8_t set_carry = 0;
 
   switch(opcode) {
+    case 0x00 ... 0x07: // RLC
+      set_carry = value >> 7;
+      value <<= 1;
+      if(set_carry) value |= 1;
+      cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
+      break;
     case 0x10 ... 0x17: // RL
       set_carry = value >> 7;
       value <<= 1;
@@ -294,6 +300,11 @@ static void cpu_cb(CPU *cpu) {
     case 0x20 ... 0x27: // SLA
       set_carry = value >> 7;
       value <<= 1;
+      cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
+      break;
+    case 0x28 ... 0x2F: // SRA
+      set_carry = value & 1;
+      value = (value & 0x80) | (value >> 1);
       cpu_set_flags(cpu, value == 0, 0, 0, set_carry);
       break;
     case 0x30 ... 0x37: // SWAP
@@ -381,6 +392,8 @@ int cpu_step(CPU *cpu) {
 
   Instruction instruction = instructions[opcode];
 
+  trace_02(cpu, instruction);
+
   cpu->pc += instruction.bytes;
 
   uint8_t nn = NN;
@@ -415,6 +428,7 @@ int cpu_step(CPU *cpu) {
     case 0x27: daa(cpu); break;
     case 0x2A: cpu->a = ram_get(cpu->ram, cpu->hl++); break;
     case 0x3A: cpu->a = ram_get(cpu->ram, cpu->hl--); break;
+    case 0x37: cpu_set_flags(cpu, ZEROF, 0, 0, 1); break;
     case 0x2F: cpu->a = ~cpu->a; cpu_set_flags(cpu, ZEROF, 1, 1, CARRYF); break;
     case 0x32: ram_set(cpu->ram, cpu->hl--, cpu->a); break;
     case 0x38: if(CARRYF) cpu->pc += (int8_t) nn; break;
