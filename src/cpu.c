@@ -392,7 +392,7 @@ int cpu_step(CPU *cpu) {
 
   Instruction instruction = instructions[opcode];
 
-  trace_02(cpu, instruction);
+  /* trace_02(cpu, instruction); */
 
   cpu->pc += instruction.bytes;
 
@@ -423,7 +423,7 @@ int cpu_step(CPU *cpu) {
     case 0x0A: case 0x1A: cpu->a = ram_get(cpu->ram, get_r16(cpu, opcode)); break;
     case 0x28: if(ZEROF) { cpu->pc += (int8_t) nn; cycles += 4; } break;
     case 0x20: if(!(ZEROF)) { cpu->pc += (int8_t) nn; cycles += 4; } break;
-    case 0x30: if(!(CARRYF)) cpu->pc += (int8_t) nn; break;
+    case 0x30: if(!(CARRYF)) { cpu->pc += (int8_t) nn; cycles += 4; } break;
     case 0x3F: cpu_set_flags(cpu, ZEROF, 0, 0, !(CARRYF)); break;
     case 0x22: ram_set(cpu->ram, cpu->hl++, cpu->a); break;
     case 0x27: daa(cpu); break;
@@ -444,9 +444,9 @@ int cpu_step(CPU *cpu) {
     case 0xA8 ... 0xAF: xor_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xB0 ... 0xB7: or_a_r8(cpu, get_r8(cpu, opcode)); break;
     case 0xB8 ... 0xBF: cp_a_r8(cpu, get_r8(cpu, opcode)); break;
-    CASE_COND_JUMP(0xC0) { cpu->pc = cpu_pop_stack(cpu); } break;
-    CASE_COND_JUMP(0xC2) { cpu->pc = nnn; } break;
-    CASE_COND_JUMP(0xC4) { cpu_push_stack(cpu, cpu->pc); cpu->pc = nnn; cycles += 4; } break;
+    CASE_COND_JUMP(0xC0) { cpu->pc = cpu_pop_stack(cpu); cycles += 12; } break;
+    CASE_COND_JUMP(0xC2) { cpu->pc = nnn; cycles += 4; } break;
+    CASE_COND_JUMP(0xC4) { cpu_push_stack(cpu, cpu->pc); cpu->pc = nnn; cycles += 12; } break;
     case 0xC3: cpu->pc = nnn; break;
     case 0xCE: adc_a_r8(cpu, nn); break;
     case 0xC6: add_a_r8(cpu, nn); break;

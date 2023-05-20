@@ -14,7 +14,6 @@ static inline int get_color(GPU *gpu, uint8_t value, uint16_t pallete);
 void gpu_init(GPU *gpu, CPU *cpu, RAM *ram) {
   gpu->cpu = cpu;
   gpu->ram = ram;
-  gpu->scanline = 456;
 
   for (int i = 0; i < 160 * 144; i++) {
     gpu->framebuffer[i] = 0x00;
@@ -179,6 +178,7 @@ static void gpu_render_tiles(GPU *gpu) {
         tile_data + (is_unsigned ? tile_num : tile_num + 128) * 16;
 
     uint8_t line = (y_pos % 8) << 1;
+
     uint8_t data_right = ram_get(gpu->ram, tile_location + line);
     uint8_t data_left = ram_get(gpu->ram, tile_location + line + 1);
 
